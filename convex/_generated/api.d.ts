@@ -8,13 +8,23 @@
  * @module
  */
 
+import type * as foodLogs from "../foodLogs.js";
+import type * as profile from "../profile.js";
+import type * as streak from "../streak.js";
+import type * as weightLogs from "../weightLogs.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  foodLogs: typeof foodLogs;
+  profile: typeof profile;
+  streak: typeof streak;
+  weightLogs: typeof weightLogs;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
