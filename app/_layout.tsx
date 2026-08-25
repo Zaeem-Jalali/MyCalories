@@ -10,7 +10,10 @@ export default function RootLayout() {
     <ConvexProvider client={convex}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="log" options={{ presentation: "modal" }} />
+        </Stack>
       </SafeAreaProvider>
     </ConvexProvider>
   );

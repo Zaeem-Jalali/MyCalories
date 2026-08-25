@@ -1,13 +1,38 @@
 import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
 import { colors } from "../../constants/theme";
 
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function toDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toDateKey(new Date());
+}
+
+function currentWeekDates(): Date[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return d;
+  });
 }
 
 function MacroStat({
@@ -33,7 +58,8 @@ function MacroStat({
 }
 
 export default function HomeScreen() {
-  const [date] = useState(todayKey());
+  const router = useRouter();
+  const [date, setDate] = useState(todayKey());
   const totals = useQuery(api.foodLogs.dailyTotals, { date });
   const logs = useQuery(api.foodLogs.listByDate, { date });
   const profile = useQuery(api.profile.get, {});
@@ -41,6 +67,8 @@ export default function HomeScreen() {
 
   const calorieGoal = profile?.calorieGoal ?? 2000;
   const eaten = totals?.calories ?? 0;
+  const today = todayKey();
+  const week = currentWeekDates();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -52,6 +80,39 @@ export default function HomeScreen() {
               <Text style={styles.streakText}>🔥 {streak}</Text>
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.dayStrip}>
+          {week.map((d) => {
+            const key = toDateKey(d);
+            const selected = key === date;
+            const isToday = key === today;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.dayPill, selected && styles.dayPillSelected]}
+                onPress={() => setDate(key)}
+              >
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    selected && styles.dayLabelSelected,
+                  ]}
+                >
+                  {DAY_LABELS[d.getDay()]}
+                </Text>
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    selected && styles.dayLabelSelected,
+                    isToday && !selected && styles.dayNumberToday,
+                  ]}
+                >
+                  {d.getDate()}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.calorieCard}>
@@ -85,13 +146,12 @@ export default function HomeScreen() {
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Today&apos;s log</Text>
+        <Text style={styles.sectionTitle}>Log for {date}</Text>
         {logs === undefined ? (
           <Text style={styles.emptyText}>Loading…</Text>
         ) : logs.length === 0 ? (
           <Text style={styles.emptyText}>
-            Nothing logged yet. Food logging (photo/barcode/manual) lands in
-            the next build phase.
+            Nothing logged for this date yet.
           </Text>
         ) : (
           logs.map((log) => (
@@ -102,13 +162,20 @@ export default function HomeScreen() {
           ))
         )}
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push({ pathname: "/log", params: { date } })}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 16 },
+  content: { padding: 20, gap: 16, paddingBottom: 100 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -122,6 +189,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   streakText: { fontWeight: "600", color: colors.text },
+  dayStrip: { flexDirection: "row", justifyContent: "space-between" },
+  dayPill: {
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    minWidth: 40,
+  },
+  dayPillSelected: { backgroundColor: colors.text },
+  dayLabel: { fontSize: 12, color: colors.textMuted },
+  dayLabelSelected: { color: colors.background },
+  dayNumber: { fontSize: 15, fontWeight: "600", color: colors.text, marginTop: 2 },
+  dayNumberToday: { color: colors.protein },
   calorieCard: {
     backgroundColor: colors.surface,
     borderRadius: 20,
@@ -161,4 +241,21 @@ const styles = StyleSheet.create({
   },
   logName: { color: colors.text, fontWeight: "500" },
   logCalories: { color: colors.textMuted },
+  fab: {
+    position: "absolute",
+    right: 24,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.text,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  fabText: { color: colors.background, fontSize: 28, lineHeight: 30 },
 });
