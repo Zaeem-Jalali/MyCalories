@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as files from "../files.js";
 import type * as foodLogs from "../foodLogs.js";
 import type * as profile from "../profile.js";
 import type * as streak from "../streak.js";
+import type * as vision from "../vision.js";
 import type * as weightLogs from "../weightLogs.js";
 
 import type {
@@ -20,9 +22,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  files: typeof files;
   foodLogs: typeof foodLogs;
   profile: typeof profile;
   streak: typeof streak;
+  vision: typeof vision;
   weightLogs: typeof weightLogs;
 }>;
 

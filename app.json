@@ -23,7 +23,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CalorieAI needs access to your photos to log meals from pictures.",
+          "cameraPermission": "CalorieAI needs camera access to snap photos of your food."
+        }
+      ]
     ]
   }
 }

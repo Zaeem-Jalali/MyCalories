@@ -16,8 +16,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { colors } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
+import { PhotoTab } from "../components/PhotoTab";
 
-type Mode = "search" | "manual";
+type Mode = "photo" | "search" | "manual";
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -28,7 +29,7 @@ export default function LogFoodScreen() {
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const date = dateParam ?? todayKey();
 
-  const [mode, setMode] = useState<Mode>("search");
+  const [mode, setMode] = useState<Mode>("photo");
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -40,6 +41,19 @@ export default function LogFoodScreen() {
       </View>
 
       <View style={styles.modeRow}>
+        <TouchableOpacity
+          style={[styles.modeChip, mode === "photo" && styles.modeChipActive]}
+          onPress={() => setMode("photo")}
+        >
+          <Text
+            style={[
+              styles.modeChipText,
+              mode === "photo" && styles.modeChipTextActive,
+            ]}
+          >
+            Photo
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeChip, mode === "search" && styles.modeChipActive]}
           onPress={() => setMode("search")}
@@ -68,7 +82,9 @@ export default function LogFoodScreen() {
         </TouchableOpacity>
       </View>
 
-      {mode === "search" ? (
+      {mode === "photo" ? (
+        <PhotoTab date={date} onLogged={() => router.back()} />
+      ) : mode === "search" ? (
         <SearchTab date={date} onLogged={() => router.back()} />
       ) : (
         <ManualTab date={date} onLogged={() => router.back()} />
