@@ -136,7 +136,9 @@ function SearchTab({
     return (
       <View style={styles.form}>
         <Text style={styles.selectedName}>{selected.name}</Text>
-        <Text style={styles.fieldLabel}>Amount (grams)</Text>
+        <Text style={styles.fieldLabel}>
+          Amount (grams){selected.packageGrams ? " — from the package size" : ""}
+        </Text>
         <TextInput
           style={styles.input}
           value={grams}
@@ -186,7 +188,10 @@ function SearchTab({
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.resultRow}
-            onPress={() => setSelected(item)}
+            onPress={() => {
+              setSelected(item);
+              setGrams(String(item.packageGrams ?? 100));
+            }}
           >
             <Text style={styles.resultName}>{item.name}</Text>
             <Text style={styles.resultMeta}>

@@ -1,5 +1,6 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
+import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -25,9 +26,62 @@ export function BarcodeTab({
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(true);
   const [looking, setLooking] = useState(false);
+  const [scanningLabel, setScanningLabel] = useState(false);
   const [product, setProduct] = useState<FoodSearchResult | null>(null);
   const [grams, setGrams] = useState("100");
   const createLog = useMutation(api.foodLogs.create);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const identifyLabel = useAction(api.vision.identifyLabel);
+
+  const selectProduct = (found: FoodSearchResult) => {
+    setProduct(found);
+    setGrams(String(found.packageGrams ?? 100));
+  };
+
+  const scanLabelInstead = async () => {
+    setScanningLabel(true);
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission needed", "Allow camera access to scan the label.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
+      if (result.canceled || !result.assets[0]) {
+        setScanning(true);
+        return;
+      }
+      const asset = result.assets[0];
+
+      const uploadUrl = await generateUploadUrl();
+      const blob = await (await fetch(asset.uri)).blob();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
+        body: blob,
+      });
+      const { storageId } = await uploadResponse.json();
+
+      const label = await identifyLabel({ storageId });
+      selectProduct({
+        id: `label:${Date.now()}`,
+        name: label.name,
+        caloriesPer100g: label.caloriesPer100g,
+        proteinPer100g: label.proteinPer100g,
+        carbsPer100g: label.carbsPer100g,
+        fatPer100g: label.fatPer100g,
+        packageGrams: label.packageGrams ?? undefined,
+      });
+    } catch (error) {
+      Alert.alert(
+        "Couldn't read label",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      setScanning(true);
+    } finally {
+      setScanningLabel(false);
+    }
+  };
 
   const handleScanned = async ({ data }: { data: string }) => {
     if (!scanning) return;
@@ -38,12 +92,15 @@ export function BarcodeTab({
       if (!found) {
         Alert.alert(
           "Not found",
-          "That barcode isn't in the Open Food Facts database. Try Search or Manual instead.",
-          [{ text: "OK", onPress: () => setScanning(true) }],
+          "That barcode isn't in the Open Food Facts database. You can scan the nutrition label instead, or use Search/Manual.",
+          [
+            { text: "Scan label", onPress: scanLabelInstead },
+            { text: "Cancel", onPress: () => setScanning(true), style: "cancel" },
+          ],
         );
         return;
       }
-      setProduct(found);
+      selectProduct(found);
     } catch (error) {
       Alert.alert(
         "Lookup failed",
@@ -94,12 +151,23 @@ export function BarcodeTab({
     );
   }
 
+  if (scanningLabel) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+        <Text style={styles.hint}>Reading the label…</Text>
+      </View>
+    );
+  }
+
   if (product) {
     return (
       <View style={styles.form}>
         <Text style={styles.productName}>{product.name}</Text>
         {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
-        <Text style={styles.fieldLabel}>Amount (grams)</Text>
+        <Text style={styles.fieldLabel}>
+          Amount (grams){product.packageGrams ? " — from the package size" : ""}
+        </Text>
         <TextInput
           style={styles.input}
           value={grams}
