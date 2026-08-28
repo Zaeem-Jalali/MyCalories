@@ -401,6 +401,8 @@ function ManualTab({
       <TouchableOpacity
         style={styles.checkboxRow}
         onPress={() => setSaveAsMeal((v) => !v)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: saveAsMeal }}
       >
         <View style={[styles.checkbox, saveAsMeal && styles.checkboxChecked]} />
         <Text style={styles.checkboxLabel}>Save as a reusable meal</Text>

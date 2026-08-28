@@ -218,7 +218,12 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.progressHeader}>
-        <TouchableOpacity onPress={goBack} hitSlop={12}>
+        <TouchableOpacity
+          onPress={goBack}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <View style={styles.progressTrack}>

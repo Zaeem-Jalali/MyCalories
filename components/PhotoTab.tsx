@@ -172,6 +172,9 @@ export function PhotoTab({
                 styles.checkbox,
                 item.include && styles.checkboxChecked,
               ]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: item.include }}
+              accessibilityLabel={`Include ${item.name || "this item"} in the log`}
             />
             <TextInput
               style={styles.ingredientName}

@@ -108,6 +108,9 @@ export function ProgressPhotos() {
                   styles.thumbWrapper,
                   selectedIds.includes(photo._id) && styles.thumbWrapperSelected,
                 ]}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selectedIds.includes(photo._id) }}
+                accessibilityLabel={`Progress photo from ${photo.date}`}
               >
                 {photo.url ? (
                   <Image source={{ uri: photo.url }} style={styles.thumb} />

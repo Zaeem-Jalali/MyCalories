@@ -183,6 +183,8 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push({ pathname: "/log", params: { date } })}
+        accessibilityRole="button"
+        accessibilityLabel="Log food"
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
