@@ -35,7 +35,7 @@ async function callVisionModel(
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,7 +59,14 @@ async function callVisionModel(
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  // Thinking-enabled models can emit multiple parts (reasoning trace +
+  // final answer); skip thought parts and concatenate the rest.
+  const text = parts
+    .filter((part: { thought?: boolean; text?: string }) => !part.thought)
+    .map((part: { text?: string }) => part.text ?? "")
+    .join("")
+    .trim();
   if (!text) {
     throw new Error("Gemini returned no content");
   }
