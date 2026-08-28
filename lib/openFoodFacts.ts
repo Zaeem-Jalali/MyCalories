@@ -48,3 +48,30 @@ export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
       fatPer100g: product.nutriments?.fat_100g ?? 0,
     }));
 }
+
+export async function getProductByBarcode(
+  barcode: string,
+): Promise<FoodSearchResult | null> {
+  const url = `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=code,product_name,brands,nutriments`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Open Food Facts lookup failed: ${response.status}`);
+  }
+
+  const data: { status: number; product?: OffProduct } = await response.json();
+  if (data.status !== 1 || !data.product || !data.product.product_name) {
+    return null;
+  }
+
+  const product = data.product;
+  return {
+    id: product.code,
+    name: product.product_name as string,
+    brand: product.brands,
+    caloriesPer100g: product.nutriments?.["energy-kcal_100g"] ?? 0,
+    proteinPer100g: product.nutriments?.proteins_100g ?? 0,
+    carbsPer100g: product.nutriments?.carbohydrates_100g ?? 0,
+    fatPer100g: product.nutriments?.fat_100g ?? 0,
+  };
+}

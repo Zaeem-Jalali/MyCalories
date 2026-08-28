@@ -14,11 +14,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors } from "../constants/theme";
+import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
+import { BarcodeTab } from "../components/BarcodeTab";
 
-type Mode = "photo" | "search" | "manual";
+type Mode = "photo" | "barcode" | "search" | "manual";
+
+const MODES: { value: Mode; label: string }[] = [
+  { value: "photo", label: "Photo" },
+  { value: "barcode", label: "Barcode" },
+  { value: "search", label: "Search" },
+  { value: "manual", label: "Manual" },
+];
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -41,49 +49,28 @@ export default function LogFoodScreen() {
       </View>
 
       <View style={styles.modeRow}>
-        <TouchableOpacity
-          style={[styles.modeChip, mode === "photo" && styles.modeChipActive]}
-          onPress={() => setMode("photo")}
-        >
-          <Text
-            style={[
-              styles.modeChipText,
-              mode === "photo" && styles.modeChipTextActive,
-            ]}
+        {MODES.map((m) => (
+          <TouchableOpacity
+            key={m.value}
+            style={[styles.modeChip, mode === m.value && styles.modeChipActive]}
+            onPress={() => setMode(m.value)}
           >
-            Photo
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeChip, mode === "search" && styles.modeChipActive]}
-          onPress={() => setMode("search")}
-        >
-          <Text
-            style={[
-              styles.modeChipText,
-              mode === "search" && styles.modeChipTextActive,
-            ]}
-          >
-            Search
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeChip, mode === "manual" && styles.modeChipActive]}
-          onPress={() => setMode("manual")}
-        >
-          <Text
-            style={[
-              styles.modeChipText,
-              mode === "manual" && styles.modeChipTextActive,
-            ]}
-          >
-            Manual
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.modeChipText,
+                mode === m.value && styles.modeChipTextActive,
+              ]}
+            >
+              {m.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {mode === "photo" ? (
         <PhotoTab date={date} onLogged={() => router.back()} />
+      ) : mode === "barcode" ? (
+        <BarcodeTab date={date} onLogged={() => router.back()} />
       ) : mode === "search" ? (
         <SearchTab date={date} onLogged={() => router.back()} />
       ) : (
@@ -332,16 +319,24 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: "700", color: colors.text },
   closeText: { color: colors.textMuted, fontWeight: "600" },
-  modeRow: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginTop: 12 },
-  modeChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
+  modeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    paddingHorizontal: 20,
+    marginTop: 12,
   },
-  modeChipActive: { backgroundColor: colors.text },
-  modeChipText: { color: colors.text, fontWeight: "500" },
-  modeChipTextActive: { color: colors.background },
+  modeChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modeChipActive: { backgroundColor: colors.accentTint, borderColor: colors.accent },
+  modeChipText: { ...type.label, color: colors.text, fontWeight: "500" },
+  modeChipTextActive: { color: colors.accent },
   form: { flex: 1, padding: 20, gap: 12 },
   row: { flexDirection: "row", gap: 12 },
   fieldLabel: { color: colors.textMuted, marginBottom: 6 },
@@ -356,7 +351,7 @@ const styles = StyleSheet.create({
   },
   searchRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   searchButton: {
-    backgroundColor: colors.text,
+    backgroundColor: colors.accent,
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -383,10 +378,10 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: colors.text, fontWeight: "600" },
   saveButton: {
     flex: 1,
-    backgroundColor: colors.text,
+    backgroundColor: colors.accent,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
   },
-  saveButtonText: { color: colors.background, fontWeight: "700" },
+  saveButtonText: { color: colors.onAccent, fontWeight: "700" },
 });

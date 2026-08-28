@@ -143,13 +143,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.surface,
   },
-  directionChipActive: { backgroundColor: colors.text },
+  directionChipActive: { backgroundColor: colors.accent },
   directionChipText: {
     color: colors.text,
     fontWeight: "500",
     textTransform: "capitalize",
   },
-  directionChipTextActive: { color: colors.background },
+  directionChipTextActive: { color: colors.onAccent },
   fieldLabel: { color: colors.textMuted, marginBottom: 6 },
   input: {
     borderWidth: 1,
@@ -161,11 +161,11 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   saveButton: {
-    backgroundColor: colors.text,
+    backgroundColor: colors.accent,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
-  saveButtonText: { color: colors.background, fontWeight: "700" },
+  saveButtonText: { color: colors.onAccent, fontWeight: "700" },
 });

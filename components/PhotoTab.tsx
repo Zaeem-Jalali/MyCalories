@@ -263,12 +263,12 @@ const styles = StyleSheet.create({
   pickerContainer: { flex: 1, padding: 20, gap: 12, justifyContent: "center" },
   hint: { color: colors.textMuted, textAlign: "center" },
   primaryButton: {
-    backgroundColor: colors.text,
+    backgroundColor: colors.accent,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
   },
-  primaryButtonText: { color: colors.background, fontWeight: "700" },
+  primaryButtonText: { color: colors.onAccent, fontWeight: "700" },
   secondaryButton: {
     flex: 1,
     borderWidth: 1,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
   },
-  checkboxChecked: { backgroundColor: colors.text, borderColor: colors.text },
+  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
   ingredientName: {
     flex: 1,
     fontSize: 16,

@@ -30,6 +30,12 @@
           "photosPermission": "CalorieAI needs access to your photos to log meals from pictures.",
           "cameraPermission": "CalorieAI needs camera access to snap photos of your food."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CalorieAI needs camera access to scan barcodes."
+        }
       ]
     ]
   }
