@@ -16,9 +16,11 @@ export type IdentifiedIngredient = {
 
 export type IdentifiedLabel = {
   name: string;
-  // Total declared package size in grams, read from "Net Wt"/"Net Vol" on
-  // the package if visible, otherwise null — never guessed.
-  packageGrams: number | null;
+  // Total declared package size, read from "Net Wt"/"Net Vol" on the
+  // package if visible, otherwise null — never guessed.
+  packageAmount: number | null;
+  // "ml" for a printed "Net Vol"/liquid measure, "g" for a printed weight.
+  unit: "g" | "ml";
   caloriesPer100g: number;
   proteinPer100g: number;
   carbsPer100g: number;
@@ -34,16 +36,17 @@ specific portion (not per 100g).
 Respond with ONLY a JSON array, no other text, in this exact shape:
 [{"name": string, "estimatedGrams": number, "calories": number, "proteinG": number, "carbsG": number, "fatG": number}]`;
 
-const NUTRITION_LABEL_PROMPT = `You are reading a packaged food's nutrition facts label, for a product that isn't in any
+const NUTRITION_LABEL_PROMPT = `You are reading a packaged food or drink's nutrition facts label, for a product that isn't in any
 barcode database. Read the printed values exactly as shown — do not estimate or round beyond what's
-printed. Report calories, protein, carbs, and fat per 100g (convert from per-serving if that's what's
-printed, using the printed serving size in grams). Separately, look for the package's declared net
-weight or volume (e.g. "Net Wt 40g", "200ml") printed anywhere on the packaging in this photo — if you
-can find it, report it in grams (treat ml as grams for liquids); if it isn't visible in this photo,
-return null for packageGrams, don't guess.
+printed. Report calories, protein, carbs, and fat per 100 units, where the unit is "ml" if this is a
+drink/liquid (juice, soda, milk, etc.) and "g" if it's a solid food — convert from per-serving if
+that's what's printed, using the printed serving size. Separately, look for the package's declared net
+weight or volume (e.g. "Net Wt 40g", "Net Vol 500ml", "200ml") printed anywhere on the packaging in
+this photo — if you can find it, report the number and whether it's grams or milliliters; if it isn't
+visible in this photo, return null for packageAmount, don't guess.
 
 Respond with ONLY a JSON object, no other text, in this exact shape:
-{"name": string, "packageGrams": number | null, "caloriesPer100g": number, "proteinPer100g": number, "carbsPer100g": number, "fatPer100g": number}`;
+{"name": string, "packageAmount": number | null, "unit": "g" | "ml", "caloriesPer100g": number, "proteinPer100g": number, "carbsPer100g": number, "fatPer100g": number}`;
 
 // Vision provider is isolated behind this one function so swapping to a paid
 // Gemini tier or to Claude later is a config change, not a rewrite.

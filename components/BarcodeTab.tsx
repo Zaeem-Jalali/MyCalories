@@ -28,14 +28,14 @@ export function BarcodeTab({
   const [looking, setLooking] = useState(false);
   const [scanningLabel, setScanningLabel] = useState(false);
   const [product, setProduct] = useState<FoodSearchResult | null>(null);
-  const [grams, setGrams] = useState("100");
+  const [amount, setAmount] = useState("100");
   const createLog = useMutation(api.foodLogs.create);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const identifyLabel = useAction(api.vision.identifyLabel);
 
   const selectProduct = (found: FoodSearchResult) => {
     setProduct(found);
-    setGrams(String(found.packageGrams ?? 100));
+    setAmount(String(found.packageAmount ?? 100));
   };
 
   const scanLabelInstead = async () => {
@@ -70,7 +70,8 @@ export function BarcodeTab({
         proteinPer100g: label.proteinPer100g,
         carbsPer100g: label.carbsPer100g,
         fatPer100g: label.fatPer100g,
-        packageGrams: label.packageGrams ?? undefined,
+        packageAmount: label.packageAmount ?? undefined,
+        unit: label.unit,
       });
     } catch (error) {
       Alert.alert(
@@ -114,17 +115,17 @@ export function BarcodeTab({
 
   const logProduct = async () => {
     if (!product) return;
-    const gramsNum = Number(grams);
-    if (!gramsNum || gramsNum <= 0) {
-      Alert.alert("Enter a valid amount in grams");
+    const amountNum = Number(amount);
+    if (!amountNum || amountNum <= 0) {
+      Alert.alert(`Enter a valid amount in ${product.unit}`);
       return;
     }
-    const scale = gramsNum / 100;
+    const scale = amountNum / 100;
     await createLog({
       date,
       name: product.name,
-      quantity: gramsNum,
-      unit: "g",
+      quantity: amountNum,
+      unit: product.unit,
       calories: Math.round(product.caloriesPer100g * scale),
       proteinG: Math.round(product.proteinPer100g * scale),
       carbsG: Math.round(product.carbsPer100g * scale),
@@ -166,17 +167,18 @@ export function BarcodeTab({
         <Text style={styles.productName}>{product.name}</Text>
         {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
         <Text style={styles.fieldLabel}>
-          Amount (grams){product.packageGrams ? " — from the package size" : ""}
+          Amount ({product.unit}){product.packageAmount ? " — from the package size" : ""}
         </Text>
         <TextInput
           style={styles.input}
-          value={grams}
-          onChangeText={setGrams}
+          value={amount}
+          onChangeText={setAmount}
           keyboardType="numeric"
         />
         <Text style={styles.previewText}>
-          {Math.round((product.caloriesPer100g * Number(grams || "0")) / 100)}{" "}
-          cal for {grams || 0}g
+          {Math.round((product.caloriesPer100g * Number(amount || "0")) / 100)}{" "}
+          cal for {amount || 0}
+          {product.unit}
         </Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity

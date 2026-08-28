@@ -91,7 +91,7 @@ function SearchTab({
   const [results, setResults] = useState<FoodSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FoodSearchResult | null>(null);
-  const [grams, setGrams] = useState("100");
+  const [amount, setAmount] = useState("100");
   const createLog = useMutation(api.foodLogs.create);
 
   const runSearch = async () => {
@@ -112,17 +112,17 @@ function SearchTab({
 
   const logSelected = async () => {
     if (!selected) return;
-    const gramsNum = Number(grams);
-    if (!gramsNum || gramsNum <= 0) {
-      Alert.alert("Enter a valid amount in grams");
+    const amountNum = Number(amount);
+    if (!amountNum || amountNum <= 0) {
+      Alert.alert(`Enter a valid amount in ${selected.unit}`);
       return;
     }
-    const scale = gramsNum / 100;
+    const scale = amountNum / 100;
     await createLog({
       date,
       name: selected.name,
-      quantity: gramsNum,
-      unit: "g",
+      quantity: amountNum,
+      unit: selected.unit,
       calories: Math.round(selected.caloriesPer100g * scale),
       proteinG: Math.round(selected.proteinPer100g * scale),
       carbsG: Math.round(selected.carbsPer100g * scale),
@@ -137,17 +137,18 @@ function SearchTab({
       <View style={styles.form}>
         <Text style={styles.selectedName}>{selected.name}</Text>
         <Text style={styles.fieldLabel}>
-          Amount (grams){selected.packageGrams ? " — from the package size" : ""}
+          Amount ({selected.unit}){selected.packageAmount ? " — from the package size" : ""}
         </Text>
         <TextInput
           style={styles.input}
-          value={grams}
-          onChangeText={setGrams}
+          value={amount}
+          onChangeText={setAmount}
           keyboardType="numeric"
         />
         <Text style={styles.previewText}>
-          {Math.round((selected.caloriesPer100g * Number(grams || "0")) / 100)}{" "}
-          cal for {grams || 0}g
+          {Math.round((selected.caloriesPer100g * Number(amount || "0")) / 100)}{" "}
+          cal for {amount || 0}
+          {selected.unit}
         </Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity
@@ -190,12 +191,12 @@ function SearchTab({
             style={styles.resultRow}
             onPress={() => {
               setSelected(item);
-              setGrams(String(item.packageGrams ?? 100));
+              setAmount(String(item.packageAmount ?? 100));
             }}
           >
             <Text style={styles.resultName}>{item.name}</Text>
             <Text style={styles.resultMeta}>
-              {Math.round(item.caloriesPer100g)} cal / 100g
+              {Math.round(item.caloriesPer100g)} cal / 100{item.unit}
               {item.brand ? ` · ${item.brand}` : ""}
             </Text>
           </TouchableOpacity>

@@ -6,10 +6,14 @@ export type FoodSearchResult = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
-  // Declared package size in grams (or ml, treated as ~1g/ml), when the
-  // product listing has it — lets us default the amount instead of
-  // forcing the user to guess it from a bare per-100g number.
-  packageGrams?: number;
+  // Declared package size, when the product listing has it — lets us
+  // default the amount instead of forcing the user to guess it from a
+  // bare per-100(g|ml) number.
+  packageAmount?: number;
+  // "g" for solids, "ml" for drinks/liquids — Open Food Facts' nutrition
+  // values are always "per 100" of whichever unit the product is sold in,
+  // so this just changes what we label the field and log, not the math.
+  unit: "g" | "ml";
 };
 
 type OffProduct = {
@@ -17,6 +21,7 @@ type OffProduct = {
   product_name?: string;
   brands?: string;
   product_quantity?: number | string;
+  product_quantity_unit?: string;
   nutriments?: {
     "energy-kcal_100g"?: number;
     proteins_100g?: number;
@@ -26,9 +31,15 @@ type OffProduct = {
 };
 
 function toResult(product: OffProduct): FoodSearchResult {
-  const packageGrams = product.product_quantity
+  const packageAmount = product.product_quantity
     ? Number(product.product_quantity)
     : undefined;
+  const unit: "g" | "ml" =
+    product.product_quantity_unit === "ml" ||
+    product.product_quantity_unit === "cl" ||
+    product.product_quantity_unit === "l"
+      ? "ml"
+      : "g";
 
   return {
     id: product.code,
@@ -38,8 +49,9 @@ function toResult(product: OffProduct): FoodSearchResult {
     proteinPer100g: product.nutriments?.proteins_100g ?? 0,
     carbsPer100g: product.nutriments?.carbohydrates_100g ?? 0,
     fatPer100g: product.nutriments?.fat_100g ?? 0,
-    packageGrams:
-      packageGrams && packageGrams > 0 ? packageGrams : undefined,
+    packageAmount:
+      packageAmount && packageAmount > 0 ? packageAmount : undefined,
+    unit,
   };
 }
 
@@ -49,7 +61,7 @@ export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
   url.searchParams.set("page_size", "20");
   url.searchParams.set(
     "fields",
-    "code,product_name,brands,product_quantity,nutriments",
+    "code,product_name,brands,product_quantity,product_quantity_unit,nutriments",
   );
 
   const response = await fetch(url.toString());
@@ -67,7 +79,7 @@ export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
 export async function getProductByBarcode(
   barcode: string,
 ): Promise<FoodSearchResult | null> {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=code,product_name,brands,product_quantity,nutriments`;
+  const url = `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=code,product_name,brands,product_quantity,product_quantity_unit,nutriments`;
 
   const response = await fetch(url);
   if (!response.ok) {
