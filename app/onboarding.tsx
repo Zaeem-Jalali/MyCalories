@@ -31,6 +31,10 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 
 const RATE_OPTIONS = [0.5, 1, 1.5, 2];
 
+const CM_PER_FOOT = 30.48;
+const CM_PER_INCH = 2.54;
+const LBS_PER_KG = 2.20462;
+
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -45,9 +49,15 @@ export default function OnboardingScreen() {
   const [firstName, setFirstName] = useState("");
   const [sex, setSex] = useState<Sex | null>(null);
   const [age, setAge] = useState("");
-  const [heightCm, setHeightCm] = useState("");
-  const [currentWeightLbs, setCurrentWeightLbs] = useState("");
-  const [goalWeightLbs, setGoalWeightLbs] = useState("");
+
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [heightCmInput, setHeightCmInput] = useState("");
+  const [heightFeetInput, setHeightFeetInput] = useState("");
+  const [heightInchesInput, setHeightInchesInput] = useState("");
+
+  const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">("lbs");
+  const [currentWeightInput, setCurrentWeightInput] = useState("");
+  const [goalWeightInput, setGoalWeightInput] = useState("");
   const [activityLevel, setActivityLevel] = useState<ActivityLevel | null>(
     null,
   );
@@ -96,6 +106,25 @@ export default function OnboardingScreen() {
     setStep(steps.indexOf(prev));
   };
 
+  // Canonical values (cm, lbs) derived from whichever unit the user picked —
+  // storage and the goal formula stay in one unit regardless of input mode.
+  const heightCm =
+    heightUnit === "cm"
+      ? Number(heightCmInput)
+      : Number(heightFeetInput || "0") * CM_PER_FOOT +
+        Number(heightInchesInput || "0") * CM_PER_INCH;
+
+  const currentWeightLbs =
+    weightUnit === "lbs"
+      ? Number(currentWeightInput)
+      : Number(currentWeightInput) * LBS_PER_KG;
+
+  const goalWeightLbs = goalWeightInput
+    ? weightUnit === "lbs"
+      ? Number(goalWeightInput)
+      : Number(goalWeightInput) * LBS_PER_KG
+    : undefined;
+
   const canProceed = (() => {
     switch (currentStepKey) {
       case "name":
@@ -105,9 +134,9 @@ export default function OnboardingScreen() {
       case "age":
         return Number(age) > 0;
       case "height":
-        return Number(heightCm) > 0;
+        return heightCm > 0;
       case "weight":
-        return Number(currentWeightLbs) > 0;
+        return currentWeightLbs > 0;
       case "activity":
         return activityLevel !== null;
       case "direction":
@@ -122,8 +151,8 @@ export default function OnboardingScreen() {
       ? computeGoals({
           sex,
           age: Number(age),
-          heightCm: Number(heightCm),
-          currentWeightLbs: Number(currentWeightLbs),
+          heightCm,
+          currentWeightLbs,
           activityLevel,
           goalDirection,
           rateLbsPerWeek: goalDirection === "maintain" ? 0 : rateLbsPerWeek,
@@ -136,18 +165,18 @@ export default function OnboardingScreen() {
       await upsertProfile({
         ...goals,
         goalDirection,
-        weightGoalLbs: goalWeightLbs ? Number(goalWeightLbs) : undefined,
+        weightGoalLbs: goalWeightLbs,
         safetyFloorOverride: false,
         name: firstName.trim(),
         sex,
         age: Number(age),
-        heightCm: Number(heightCm),
+        heightCm,
         activityLevel,
         onboardingCompleted: true,
       });
       await logWeight({
         date: todayKey(),
-        weightLbs: Number(currentWeightLbs),
+        weightLbs: currentWeightLbs,
       });
       router.replace("/");
     } catch (error) {
@@ -246,35 +275,71 @@ export default function OnboardingScreen() {
         )}
 
         {currentStepKey === "height" && (
-          <Step title="How tall are you?" subtitle="In centimeters.">
-            <TextInput
-              style={styles.bigInput}
-              value={heightCm}
-              onChangeText={setHeightCm}
-              keyboardType="numeric"
-              placeholder="Height (cm)"
-              autoFocus
+          <Step title="How tall are you?">
+            <UnitToggle
+              options={[
+                { value: "cm", label: "cm" },
+                { value: "ft", label: "ft/in" },
+              ]}
+              selected={heightUnit}
+              onSelect={setHeightUnit}
             />
+            {heightUnit === "cm" ? (
+              <TextInput
+                style={styles.bigInput}
+                value={heightCmInput}
+                onChangeText={setHeightCmInput}
+                keyboardType="numeric"
+                placeholder="Height (cm)"
+                autoFocus
+              />
+            ) : (
+              <View style={styles.row}>
+                <TextInput
+                  style={[styles.bigInput, { flex: 1 }]}
+                  value={heightFeetInput}
+                  onChangeText={setHeightFeetInput}
+                  keyboardType="numeric"
+                  placeholder="Feet"
+                  autoFocus
+                />
+                <TextInput
+                  style={[styles.bigInput, { flex: 1 }]}
+                  value={heightInchesInput}
+                  onChangeText={setHeightInchesInput}
+                  keyboardType="numeric"
+                  placeholder="Inches"
+                />
+              </View>
+            )}
           </Step>
         )}
 
         {currentStepKey === "weight" && (
-          <Step title="What's your current weight?" subtitle="In pounds.">
+          <Step title="What's your current weight?">
+            <UnitToggle
+              options={[
+                { value: "lbs", label: "lbs" },
+                { value: "kg", label: "kg" },
+              ]}
+              selected={weightUnit}
+              onSelect={setWeightUnit}
+            />
             <TextInput
               style={styles.bigInput}
-              value={currentWeightLbs}
-              onChangeText={setCurrentWeightLbs}
+              value={currentWeightInput}
+              onChangeText={setCurrentWeightInput}
               keyboardType="numeric"
-              placeholder="Weight (lbs)"
+              placeholder={`Weight (${weightUnit})`}
               autoFocus
             />
             <Text style={styles.fieldLabel}>Goal weight (optional)</Text>
             <TextInput
               style={styles.input}
-              value={goalWeightLbs}
-              onChangeText={setGoalWeightLbs}
+              value={goalWeightInput}
+              onChangeText={setGoalWeightInput}
               keyboardType="numeric"
-              placeholder="Goal weight (lbs)"
+              placeholder={`Goal weight (${weightUnit})`}
             />
           </Step>
         )}
@@ -393,6 +458,43 @@ function Step({
   );
 }
 
+function UnitToggle<T extends string>({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: { value: T; label: string }[];
+  selected: T;
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <View style={styles.unitToggleRow}>
+      {options.map((option) => {
+        const isSelected = option.value === selected;
+        return (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.unitToggleButton,
+              isSelected && styles.unitToggleButtonSelected,
+            ]}
+            onPress={() => onSelect(option.value)}
+          >
+            <Text
+              style={[
+                styles.unitToggleText,
+                isSelected && styles.unitToggleTextSelected,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 function Chip({
   label,
   selected,
@@ -484,6 +586,26 @@ const styles = StyleSheet.create({
   },
   chipText: { ...type.bodyStrong, color: colors.text },
   chipTextSelected: { color: colors.accent },
+  row: { flexDirection: "row", gap: spacing.sm },
+  unitToggleRow: {
+    flexDirection: "row",
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  unitToggleButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  unitToggleButtonSelected: {
+    backgroundColor: colors.accentTint,
+    borderColor: colors.accent,
+  },
+  unitToggleText: { ...type.label, color: colors.textMuted },
+  unitToggleTextSelected: { color: colors.accent, fontWeight: "700" },
   bigInput: {
     borderWidth: 1,
     borderColor: colors.border,
