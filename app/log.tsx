@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -14,17 +14,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
+import type { Doc } from "../convex/_generated/dataModel";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
 import { BarcodeTab } from "../components/BarcodeTab";
 
-type Mode = "photo" | "barcode" | "search" | "manual";
+type Mode = "photo" | "barcode" | "search" | "saved" | "manual";
 
 const MODES: { value: Mode; label: string }[] = [
   { value: "photo", label: "Photo" },
   { value: "barcode", label: "Barcode" },
   { value: "search", label: "Search" },
+  { value: "saved", label: "Saved" },
   { value: "manual", label: "Manual" },
 ];
 
@@ -73,6 +75,8 @@ export default function LogFoodScreen() {
         <BarcodeTab date={date} onLogged={() => router.back()} />
       ) : mode === "search" ? (
         <SearchTab date={date} onLogged={() => router.back()} />
+      ) : mode === "saved" ? (
+        <SavedTab date={date} onLogged={() => router.back()} />
       ) : (
         <ManualTab date={date} onLogged={() => router.back()} />
       )}
@@ -213,6 +217,89 @@ function SearchTab({
   );
 }
 
+function SavedTab({
+  date,
+  onLogged,
+}: {
+  date: string;
+  onLogged: () => void;
+}) {
+  const savedMeals = useQuery(api.savedMeals.list, {});
+  const createLog = useMutation(api.foodLogs.create);
+  const removeSaved = useMutation(api.savedMeals.remove);
+  const [filter, setFilter] = useState("");
+
+  const filtered = (savedMeals ?? []).filter((meal) =>
+    meal.name.toLowerCase().includes(filter.trim().toLowerCase()),
+  );
+
+  const logMeal = async (meal: Doc<"savedMeals">) => {
+    await createLog({
+      date,
+      name: meal.name,
+      quantity: meal.quantity,
+      unit: meal.unit,
+      calories: meal.calories,
+      proteinG: meal.proteinG,
+      carbsG: meal.carbsG,
+      fatG: meal.fatG,
+      source: "saved",
+      savedMealId: meal._id,
+    });
+    onLogged();
+  };
+
+  return (
+    <View style={styles.form}>
+      <TextInput
+        style={styles.input}
+        value={filter}
+        onChangeText={setFilter}
+        placeholder="Filter saved meals"
+      />
+
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <View style={styles.resultRow}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => logMeal(item)}>
+              <Text style={styles.resultName}>{item.name}</Text>
+              <Text style={styles.resultMeta}>
+                {item.calories} cal · {item.quantity}
+                {item.unit}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert("Remove saved meal", `Delete "${item.name}"?`, [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => removeSaved({ id: item._id }),
+                  },
+                ])
+              }
+              hitSlop={8}
+            >
+              <Text style={styles.deleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        ListEmptyComponent={
+          savedMeals !== undefined ? (
+            <Text style={styles.emptyText}>
+              No saved meals yet. Check &quot;Save as a reusable meal&quot; when
+              logging manually to build this list.
+            </Text>
+          ) : null
+        }
+      />
+    </View>
+  );
+}
+
 function ManualTab({
   date,
   onLogged,
@@ -221,6 +308,7 @@ function ManualTab({
   onLogged: () => void;
 }) {
   const createLog = useMutation(api.foodLogs.create);
+  const createSavedMeal = useMutation(api.savedMeals.create);
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("serving");
@@ -228,14 +316,14 @@ function ManualTab({
   const [proteinG, setProteinG] = useState("");
   const [carbsG, setCarbsG] = useState("");
   const [fatG, setFatG] = useState("");
+  const [saveAsMeal, setSaveAsMeal] = useState(false);
 
   const save = async () => {
     if (!name.trim() || !calories) {
       Alert.alert("Name and calories are required");
       return;
     }
-    await createLog({
-      date,
+    const values = {
       name: name.trim(),
       quantity: Number(quantity) || 1,
       unit,
@@ -243,8 +331,11 @@ function ManualTab({
       proteinG: Number(proteinG) || 0,
       carbsG: Number(carbsG) || 0,
       fatG: Number(fatG) || 0,
-      source: "manual",
-    });
+    };
+    await createLog({ date, source: "manual", ...values });
+    if (saveAsMeal) {
+      await createSavedMeal(values);
+    }
     onLogged();
   };
 
@@ -307,6 +398,14 @@ function ManualTab({
         </View>
       </View>
 
+      <TouchableOpacity
+        style={styles.checkboxRow}
+        onPress={() => setSaveAsMeal((v) => !v)}
+      >
+        <View style={[styles.checkbox, saveAsMeal && styles.checkboxChecked]} />
+        <Text style={styles.checkboxLabel}>Save as a reusable meal</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.saveButton} onPress={save}>
         <Text style={styles.saveButtonText}>Add to log</Text>
       </TouchableOpacity>
@@ -363,10 +462,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
+  deleteText: { color: colors.danger, fontWeight: "600", fontSize: 13 },
+  checkboxRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
+  checkboxLabel: { color: colors.text },
   resultName: { color: colors.text, fontWeight: "600" },
   resultMeta: { color: colors.textMuted, marginTop: 2, fontSize: 13 },
   emptyText: { color: colors.textMuted, marginTop: 20, textAlign: "center" },

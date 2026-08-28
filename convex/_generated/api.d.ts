@@ -12,6 +12,7 @@ import type * as files from "../files.js";
 import type * as foodLogs from "../foodLogs.js";
 import type * as profile from "../profile.js";
 import type * as progressPhotos from "../progressPhotos.js";
+import type * as savedMeals from "../savedMeals.js";
 import type * as streak from "../streak.js";
 import type * as vision from "../vision.js";
 import type * as weightLogs from "../weightLogs.js";
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   foodLogs: typeof foodLogs;
   profile: typeof profile;
   progressPhotos: typeof progressPhotos;
+  savedMeals: typeof savedMeals;
   streak: typeof streak;
   vision: typeof vision;
   weightLogs: typeof weightLogs;
