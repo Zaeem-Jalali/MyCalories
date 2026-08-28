@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { UnitToggle } from "../components/UnitToggle";
+import { todayKey } from "../lib/dateKey";
 import {
   ActivityLevel,
   GoalDirection,
@@ -35,10 +36,6 @@ const RATE_OPTIONS = [0.5, 1, 1.5, 2];
 const CM_PER_FOOT = 30.48;
 const CM_PER_INCH = 2.54;
 const LBS_PER_KG = 2.20462;
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10;

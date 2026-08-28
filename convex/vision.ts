@@ -27,7 +27,30 @@ export type IdentifiedLabel = {
   fatPer100g: number;
 };
 
-const FOOD_PHOTO_PROMPT = `You are a nutrition estimation assistant. Look at this food photo and identify each distinct
+export type IdentifiedPlanEntry = {
+  dayOfWeek: number;
+  activity: "walk" | "run" | "cycle" | "weights";
+  durationMinutes: number;
+  intensity: "slow" | "normal" | "brisk";
+  notes: string | null;
+};
+
+const WORKOUT_SCHEDULE_PROMPT = `You are reading a photo of a handwritten or printed weekly workout schedule. Extract every planned
+session you can actually read. For each one report the day of the week as a number (0 = Sunday,
+1 = Monday, through 6 = Saturday), the activity mapped to the closest of "walk", "run", "cycle" or
+"weights" (treat gym, lifting, resistance and strength training as "weights"; treat jogging as "run";
+treat spinning and biking as "cycle"; treat hiking and treadmill walking as "walk"), the planned
+duration in minutes, and the intensity as "slow", "normal" or "brisk".
+
+Rules: only report sessions that are actually written in the photo, never invent a session to fill an
+empty day. If a duration is not written, use 30. If an intensity is not written, use "normal". If a
+session is an activity that does not map to any of the four options above, skip it. Put anything else
+written about the session (exercise names, sets, reps, distance) in "notes", or null if there is none.
+
+Respond with ONLY a JSON array, no other text, in this exact shape:
+[{"dayOfWeek": number, "activity": "walk" | "run" | "cycle" | "weights", "durationMinutes": number, "intensity": "slow" | "normal" | "brisk", "notes": string | null}]`;
+
+const FOOD_PHOTO_PROMPT =`You are a nutrition estimation assistant. Look at this food photo and identify each distinct
 ingredient or food item visible. For each one, estimate its portion size in grams based on what's
 actually visible in the photo (plate size, depth, typical density) — never assume a default serving,
 always reason about the real quantity shown. Then estimate calories, protein, carbs, and fat for that
@@ -126,6 +149,51 @@ export const identifyFood = action({
       base64Image,
       mimeType,
     );
+  },
+});
+
+const ACTIVITIES = ["walk", "run", "cycle", "weights"] as const;
+const INTENSITIES = ["slow", "normal", "brisk"] as const;
+
+function normalizeNotes(notes: unknown): string | null {
+  if (typeof notes === "string") return notes.trim() || null;
+  if (Array.isArray(notes)) {
+    const joined = notes.filter((part) => typeof part === "string").join(", ");
+    return joined || null;
+  }
+  if (typeof notes === "number") return String(notes);
+  return null;
+}
+
+export const identifyWorkoutSchedule = action({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }): Promise<IdentifiedPlanEntry[]> => {
+    const { base64Image, mimeType } = await readStorageAsBase64(ctx, storageId);
+    const parsed = await callVisionModel<IdentifiedPlanEntry[]>(
+      WORKOUT_SCHEDULE_PROMPT,
+      base64Image,
+      mimeType,
+    );
+    if (!Array.isArray(parsed)) {
+      throw new Error("Couldn't read a weekly schedule from that photo");
+    }
+    // The model is free-form enough that a bad day number or an unmapped
+    // activity would fail the mutation's validator further downstream. Drop
+    // those rows here instead of guessing what was meant. `notes` is the one
+    // free-text field, so it gets normalised rather than dropped: a model that
+    // returns a sets/reps array there shouldn't cost the whole schedule.
+    return parsed
+      .filter(
+        (entry) =>
+          Number.isInteger(entry?.dayOfWeek) &&
+          entry.dayOfWeek >= 0 &&
+          entry.dayOfWeek <= 6 &&
+          ACTIVITIES.includes(entry.activity) &&
+          INTENSITIES.includes(entry.intensity) &&
+          typeof entry.durationMinutes === "number" &&
+          entry.durationMinutes > 0,
+      )
+      .map((entry) => ({ ...entry, notes: normalizeNotes(entry.notes) }));
   },
 });
 

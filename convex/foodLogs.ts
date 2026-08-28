@@ -1,13 +1,39 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { ingredientValidator } from "./schema";
 
 export const listByDate = query({
   args: { date: v.string() },
   handler: async (ctx, { date }) => {
-    return await ctx.db
+    const logs = await ctx.db
       .query("foodLogs")
       .withIndex("by_date", (q) => q.eq("date", date))
       .collect();
+
+    // The list renders a thumbnail for photo-logged meals, so the signed URL
+    // has to come back with the row rather than in a per-row follow-up query.
+    return await Promise.all(
+      logs.map(async (log) => ({
+        ...log,
+        photoUrl: log.photoStorageId
+          ? await ctx.storage.getUrl(log.photoStorageId)
+          : null,
+      })),
+    );
+  },
+});
+
+export const get = query({
+  args: { id: v.id("foodLogs") },
+  handler: async (ctx, { id }) => {
+    const log = await ctx.db.get(id);
+    if (!log) return null;
+    return {
+      ...log,
+      photoUrl: log.photoStorageId
+        ? await ctx.storage.getUrl(log.photoStorageId)
+        : null,
+    };
   },
 });
 
@@ -51,6 +77,7 @@ export const create = mutation({
     ),
     photoStorageId: v.optional(v.id("_storage")),
     savedMealId: v.optional(v.id("savedMeals")),
+    ingredients: v.optional(v.array(ingredientValidator)),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("foodLogs", args);

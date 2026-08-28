@@ -2,6 +2,11 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Conventions
+
+- **Dates.** Every date is a `YYYY-MM-DD` calendar day in the user's own timezone. Always build and parse keys with `lib/dateKey.ts` (`toDateKey`, `todayKey`, `dateFromKey`). Never use `toISOString().slice(0, 10)`, it shifts the day for anyone east of UTC.
+- **Photo meals.** A photo-logged meal is one `foodLogs` row with the identified items in its `ingredients` array, not one row per ingredient. The breakdown is shown in `app/mealDetail.tsx`.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.

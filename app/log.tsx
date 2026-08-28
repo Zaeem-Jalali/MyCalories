@@ -19,6 +19,7 @@ import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
 import { BarcodeTab } from "../components/BarcodeTab";
+import { todayKey } from "../lib/dateKey";
 
 type Mode = "photo" | "barcode" | "search" | "saved" | "manual";
 
@@ -29,10 +30,6 @@ const MODES: { value: Mode; label: string }[] = [
   { value: "saved", label: "Saved" },
   { value: "manual", label: "Manual" },
 ];
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function LogFoodScreen() {
   const router = useRouter();

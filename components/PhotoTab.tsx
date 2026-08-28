@@ -20,6 +20,16 @@ import type { IdentifiedIngredient } from "../convex/vision";
 
 type EditableIngredient = IdentifiedIngredient & { include: boolean };
 
+// The meal row needs one name. Built from what was actually identified so the
+// user has something real to edit, never a generic "Meal" placeholder.
+function defaultMealName(items: { name: string }[]): string {
+  const names = items.map((item) => item.name.trim()).filter(Boolean);
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+}
+
 export function PhotoTab({
   date,
   onLogged,
@@ -38,6 +48,8 @@ export function PhotoTab({
     null,
   );
   const [saving, setSaving] = useState(false);
+  const [mealName, setMealName] = useState("");
+  const [nameEdited, setNameEdited] = useState(false);
 
   const pickAndAnalyze = async (source: "camera" | "library") => {
     const permission =
@@ -60,6 +72,8 @@ export function PhotoTab({
     const asset = result.assets[0];
     setPhotoUri(asset.uri);
     setIngredients(null);
+    setMealName("");
+    setNameEdited(false);
     setAnalyzing(true);
 
     try {
@@ -72,11 +86,17 @@ export function PhotoTab({
         headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
         body: blob,
       });
+      if (!uploadResponse.ok) {
+        throw new Error(
+          `Upload failed (${uploadResponse.status}). Check your connection and try again.`,
+        );
+      }
       const { storageId: uploadedId } = await uploadResponse.json();
       setStorageId(uploadedId);
 
       const found = await identifyFood({ storageId: uploadedId });
       setIngredients(found.map((item) => ({ ...item, include: true })));
+      setMealName(defaultMealName(found));
     } catch (error) {
       Alert.alert(
         "Couldn't analyze photo",
@@ -91,11 +111,14 @@ export function PhotoTab({
     index: number,
     patch: Partial<EditableIngredient>,
   ) => {
-    setIngredients((current) =>
-      current
-        ? current.map((item, i) => (i === index ? { ...item, ...patch } : item))
-        : current,
+    if (!ingredients) return;
+    const next = ingredients.map((item, i) =>
+      i === index ? { ...item, ...patch } : item,
     );
+    setIngredients(next);
+    if (!nameEdited) {
+      setMealName(defaultMealName(next.filter((item) => item.include)));
+    }
   };
 
   const saveAll = async () => {
@@ -105,23 +128,57 @@ export function PhotoTab({
       Alert.alert("Select at least one item to log");
       return;
     }
+    const name = mealName.trim() || defaultMealName(selected);
+    if (!name) {
+      Alert.alert("Name this meal before adding it");
+      return;
+    }
+
+    // One row per photo, with the identified items kept as the breakdown, so
+    // the daily log reads as meals instead of a wall of ingredients.
+    // Rounded before saving, matching every other log path, so the meal total
+    // is exactly the sum of the breakdown the detail screen shows.
+    const ingredientRows = selected.map((item) => ({
+      name: item.name,
+      quantity: Math.round(item.estimatedGrams),
+      unit: "g",
+      calories: Math.round(item.calories),
+      proteinG: Math.round(item.proteinG),
+      carbsG: Math.round(item.carbsG),
+      fatG: Math.round(item.fatG),
+    }));
+    const total = ingredientRows.reduce(
+      (sum, item) => ({
+        quantity: sum.quantity + item.quantity,
+        calories: sum.calories + item.calories,
+        proteinG: sum.proteinG + item.proteinG,
+        carbsG: sum.carbsG + item.carbsG,
+        fatG: sum.fatG + item.fatG,
+      }),
+      { quantity: 0, calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    );
+
     setSaving(true);
     try {
-      for (const item of selected) {
-        await createLog({
-          date,
-          name: item.name,
-          quantity: item.estimatedGrams,
-          unit: "g",
-          calories: item.calories,
-          proteinG: item.proteinG,
-          carbsG: item.carbsG,
-          fatG: item.fatG,
-          source: "photo",
-          photoStorageId: storageId ?? undefined,
-        });
-      }
+      await createLog({
+        date,
+        name,
+        quantity: total.quantity,
+        unit: "g",
+        calories: total.calories,
+        proteinG: total.proteinG,
+        carbsG: total.carbsG,
+        fatG: total.fatG,
+        source: "photo",
+        photoStorageId: storageId ?? undefined,
+        ingredients: ingredientRows,
+      });
       onLogged();
+    } catch (error) {
+      Alert.alert(
+        "Couldn't add the meal",
+        error instanceof Error ? error.message : "Unknown error",
+      );
     } finally {
       setSaving(false);
     }
@@ -158,6 +215,20 @@ export function PhotoTab({
         <View style={styles.loadingRow}>
           <ActivityIndicator />
           <Text style={styles.hint}>Identifying ingredients…</Text>
+        </View>
+      ) : null}
+
+      {ingredients ? (
+        <View style={styles.mealNameGroup}>
+          <Text style={styles.fieldLabel}>Meal name</Text>
+          <TextInput
+            style={styles.mealNameInput}
+            value={mealName}
+            onChangeText={(text) => {
+              setNameEdited(true);
+              setMealName(text);
+            }}
+          />
         </View>
       ) : null}
 
@@ -221,6 +292,8 @@ export function PhotoTab({
             onPress={() => {
               setPhotoUri(null);
               setIngredients(null);
+              setMealName("");
+              setNameEdited(false);
             }}
           >
             <Text style={styles.secondaryButtonText}>Retake</Text>
@@ -317,5 +390,16 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   fieldLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  mealNameGroup: { gap: 6 },
+  mealNameInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text,
+  },
   buttonRow: { flexDirection: "row", gap: 12 },
 });

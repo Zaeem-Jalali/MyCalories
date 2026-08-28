@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,16 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
 import { colors } from "../../constants/theme";
+import { toDateKey, todayKey } from "../../lib/dateKey";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function todayKey(): string {
-  return toDateKey(new Date());
-}
 
 function currentWeekDates(): Date[] {
   const today = new Date();
@@ -152,7 +146,7 @@ export default function HomeScreen() {
         >
           <Ionicons name="walk-outline" size={18} color={colors.accent} />
           <Text style={styles.exerciseText}>
-            {burned ? `${burned} cal from walking today` : "Log a walk"}
+            {burned ? `${burned} cal from exercise today` : "Log exercise"}
           </Text>
         </TouchableOpacity>
 
@@ -185,12 +179,41 @@ export default function HomeScreen() {
             Nothing logged for this date yet.
           </Text>
         ) : (
-          logs.map((log) => (
-            <View key={log._id} style={styles.logRow}>
-              <Text style={styles.logName}>{log.name}</Text>
-              <Text style={styles.logCalories}>{log.calories} cal</Text>
-            </View>
-          ))
+          logs.map((log) => {
+            const breakdown = log.ingredients?.length ?? 0;
+            return (
+              <TouchableOpacity
+                key={log._id}
+                style={styles.logRow}
+                onPress={() =>
+                  router.push({
+                    pathname: "/mealDetail",
+                    params: { id: log._id },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${log.name}`}
+              >
+                {log.photoUrl ? (
+                  <Image
+                    source={{ uri: log.photoUrl }}
+                    style={styles.logThumbnail}
+                  />
+                ) : null}
+                <View style={styles.logMain}>
+                  <Text style={styles.logName}>{log.name}</Text>
+                  {breakdown > 0 ? (
+                    <Text style={styles.logMeta}>
+                      {breakdown} item{breakdown === 1 ? "" : "s"}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={styles.logCalories}>
+                  {Math.round(log.calories)} cal
+                </Text>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
 
@@ -281,12 +304,16 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.textMuted },
   logRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
+  logThumbnail: { width: 44, height: 44, borderRadius: 10 },
+  logMain: { flex: 1, gap: 2 },
   logName: { color: colors.text, fontWeight: "500" },
+  logMeta: { fontSize: 13, color: colors.textMuted },
   logCalories: { color: colors.textMuted },
   fab: {
     position: "absolute",

@@ -70,22 +70,56 @@ export default function SettingsScreen() {
         );
         return;
       }
-      const granted = await setDailyReminder(reminderHour, 0);
-      if (!granted) {
-        Alert.alert("Permission needed", "Allow notifications to set a reminder.");
-        return;
+      // Without this catch the switch silently snaps back with no
+      // explanation whenever scheduling throws on device.
+      try {
+        const granted = await setDailyReminder(reminderHour, 0);
+        if (!granted) {
+          Alert.alert(
+            "Permission needed",
+            "Allow notifications to set a reminder.",
+          );
+          return;
+        }
+        setReminderEnabled(true);
+      } catch (error) {
+        Alert.alert(
+          "Couldn't set the reminder",
+          error instanceof Error ? error.message : "Unknown error",
+        );
       }
-      setReminderEnabled(true);
     } else {
-      await cancelDailyReminder();
-      setReminderEnabled(false);
+      try {
+        await cancelDailyReminder();
+        setReminderEnabled(false);
+      } catch (error) {
+        Alert.alert(
+          "Couldn't turn the reminder off",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
     }
   };
 
   const changeReminderTime = async (hour: number) => {
     setReminderHour(hour);
-    if (reminderEnabled) {
-      await setDailyReminder(hour, 0);
+    // Rescheduling cancels the old reminder first, so a failure here leaves
+    // nothing scheduled. The switch has to go back off to stay truthful.
+    try {
+      const granted = await setDailyReminder(hour, 0);
+      if (!granted) {
+        setReminderEnabled(false);
+        Alert.alert(
+          "Permission needed",
+          "Allow notifications to set a reminder.",
+        );
+      }
+    } catch (error) {
+      setReminderEnabled(false);
+      Alert.alert(
+        "Couldn't change the time",
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   };
 

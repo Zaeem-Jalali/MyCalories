@@ -15,10 +15,7 @@ import {
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { colors, radii, spacing, type } from "../constants/theme";
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayKey } from "../lib/dateKey";
 
 export function ProgressPhotos() {
   const photos = useQuery(api.progressPhotos.list, {});

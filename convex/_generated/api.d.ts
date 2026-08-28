@@ -9,6 +9,7 @@
  */
 
 import type * as exerciseLogs from "../exerciseLogs.js";
+import type * as exercisePlans from "../exercisePlans.js";
 import type * as files from "../files.js";
 import type * as foodLogs from "../foodLogs.js";
 import type * as profile from "../profile.js";
@@ -26,6 +27,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   exerciseLogs: typeof exerciseLogs;
+  exercisePlans: typeof exercisePlans;
   files: typeof files;
   foodLogs: typeof foodLogs;
   profile: typeof profile;

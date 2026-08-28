@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { activityValidator, intensityValidator } from "./schema";
 
 export const listByDate = query({
   args: { date: v.string() },
@@ -25,8 +26,8 @@ export const dailyCaloriesBurned = query({
 export const create = mutation({
   args: {
     date: v.string(),
-    activity: v.literal("walk"),
-    pace: v.union(v.literal("slow"), v.literal("normal"), v.literal("brisk")),
+    activity: activityValidator,
+    pace: intensityValidator,
     durationMinutes: v.number(),
     caloriesBurned: v.number(),
   },

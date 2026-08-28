@@ -16,15 +16,12 @@ import { colors, radii, spacing, type } from "../../constants/theme";
 import { ProgressPhotos } from "../../components/ProgressPhotos";
 import { UnitToggle } from "../../components/UnitToggle";
 import { WeightChart } from "../../components/WeightChart";
+import { todayKey } from "../../lib/dateKey";
 
 const LBS_PER_KG = 2.20462;
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export default function ProgressScreen() {

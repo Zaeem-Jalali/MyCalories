@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 // biggest notification complaint was volume and irrelevance ("30 a day",
 // "I don't care what Susie lost"), so there is nothing else to turn on.
 const REMINDER_IDENTIFIER = "daily-log-reminder";
+const REMINDER_CHANNEL = "reminders";
 
 // expo-notifications has no web implementation at all (by design, per
 // Expo's docs) — this app's real target is native, so the web preview
@@ -29,17 +30,19 @@ export async function setDailyReminder(
 ): Promise<boolean> {
   if (!SUPPORTED) return false;
 
-  const permission = await Notifications.requestPermissionsAsync();
-  if (!permission.granted) return false;
-
+  // The channel has to exist before anything is scheduled against it,
+  // otherwise Android drops the notification into the default channel.
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("reminders", {
+    await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
       name: "Daily reminder",
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
 
-  await Notifications.cancelScheduledNotificationAsync(REMINDER_IDENTIFIER);
+  const permission = await Notifications.requestPermissionsAsync();
+  if (!permission.granted) return false;
+
+  await cancelDailyReminder();
   await Notifications.scheduleNotificationAsync({
     identifier: REMINDER_IDENTIFIER,
     content: {
@@ -51,6 +54,7 @@ export async function setDailyReminder(
       hour,
       minute,
       repeats: true,
+      ...(Platform.OS === "android" ? { channelId: REMINDER_CHANNEL } : {}),
     },
   });
   return true;
