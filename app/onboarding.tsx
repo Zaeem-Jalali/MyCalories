@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, type } from "../constants/theme";
+import { UnitToggle } from "../components/UnitToggle";
 import {
   ActivityLevel,
   GoalDirection,
@@ -37,6 +38,10 @@ const LBS_PER_KG = 2.20462;
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 export default function OnboardingScreen() {
@@ -108,21 +113,25 @@ export default function OnboardingScreen() {
 
   // Canonical values (cm, lbs) derived from whichever unit the user picked —
   // storage and the goal formula stay in one unit regardless of input mode.
-  const heightCm =
+  const heightCm = round1(
     heightUnit === "cm"
       ? Number(heightCmInput)
       : Number(heightFeetInput || "0") * CM_PER_FOOT +
-        Number(heightInchesInput || "0") * CM_PER_INCH;
+          Number(heightInchesInput || "0") * CM_PER_INCH,
+  );
 
-  const currentWeightLbs =
+  const currentWeightLbs = round1(
     weightUnit === "lbs"
       ? Number(currentWeightInput)
-      : Number(currentWeightInput) * LBS_PER_KG;
+      : Number(currentWeightInput) * LBS_PER_KG,
+  );
 
   const goalWeightLbs = goalWeightInput
-    ? weightUnit === "lbs"
-      ? Number(goalWeightInput)
-      : Number(goalWeightInput) * LBS_PER_KG
+    ? round1(
+        weightUnit === "lbs"
+          ? Number(goalWeightInput)
+          : Number(goalWeightInput) * LBS_PER_KG,
+      )
     : undefined;
 
   const canProceed = (() => {
@@ -458,43 +467,6 @@ function Step({
   );
 }
 
-function UnitToggle<T extends string>({
-  options,
-  selected,
-  onSelect,
-}: {
-  options: { value: T; label: string }[];
-  selected: T;
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <View style={styles.unitToggleRow}>
-      {options.map((option) => {
-        const isSelected = option.value === selected;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.unitToggleButton,
-              isSelected && styles.unitToggleButtonSelected,
-            ]}
-            onPress={() => onSelect(option.value)}
-          >
-            <Text
-              style={[
-                styles.unitToggleText,
-                isSelected && styles.unitToggleTextSelected,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
-
 function Chip({
   label,
   selected,
@@ -587,25 +559,6 @@ const styles = StyleSheet.create({
   chipText: { ...type.bodyStrong, color: colors.text },
   chipTextSelected: { color: colors.accent },
   row: { flexDirection: "row", gap: spacing.sm },
-  unitToggleRow: {
-    flexDirection: "row",
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  unitToggleButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  unitToggleButtonSelected: {
-    backgroundColor: colors.accentTint,
-    borderColor: colors.accent,
-  },
-  unitToggleText: { ...type.label, color: colors.textMuted },
-  unitToggleTextSelected: { color: colors.accent, fontWeight: "700" },
   bigInput: {
     borderWidth: 1,
     borderColor: colors.border,
