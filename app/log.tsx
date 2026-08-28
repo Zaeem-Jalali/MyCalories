@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,7 +20,9 @@ import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
 import { BarcodeTab } from "../components/BarcodeTab";
-import { todayKey } from "../lib/dateKey";
+import { Chip } from "../components/ui/Chip";
+import { PressableScale } from "../components/ui/PressableScale";
+import { formatDateLabel, todayKey } from "../lib/dateKey";
 import { Authenticated } from "convex/react";
 
 type Mode = "photo" | "barcode" | "search" | "saved" | "manual";
@@ -42,30 +45,37 @@ function LogFoodScreenContent() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Log food — {date}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Log food</Text>
+          <Text style={styles.subtitle}>{formatDateLabel(date)}</Text>
+        </View>
+        <PressableScale
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={styles.closeButton}
+        >
           <Text style={styles.closeText}>Close</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
-      <View style={styles.modeRow}>
+      {/* Five options never fit one phone row. Scrolling keeps them on a
+          single line instead of wrapping one orphan chip onto a second. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.modeScroll}
+        contentContainerStyle={styles.modeRow}
+      >
         {MODES.map((m) => (
-          <TouchableOpacity
+          <Chip
             key={m.value}
-            style={[styles.modeChip, mode === m.value && styles.modeChipActive]}
+            label={m.label}
+            selected={mode === m.value}
             onPress={() => setMode(m.value)}
-          >
-            <Text
-              style={[
-                styles.modeChipText,
-                mode === m.value && styles.modeChipTextActive,
-              ]}
-            >
-              {m.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
-      </View>
+      </ScrollView>
 
       {mode === "photo" ? (
         <PhotoTab date={date} onLogged={() => router.back()} />
@@ -139,7 +149,7 @@ function SearchTab({
       <View style={styles.form}>
         <Text style={styles.selectedName}>{selected.name}</Text>
         <Text style={styles.fieldLabel}>
-          Amount ({selected.unit}){selected.packageAmount ? " — from the package size" : ""}
+          Amount ({selected.unit}){selected.packageAmount ? " (from the package size)" : ""}
         </Text>
         <TextInput
           style={styles.input}
@@ -418,30 +428,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    alignItems: "flex-start",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm + 4,
   },
-  title: { fontSize: 18, fontWeight: "700", color: colors.text },
-  closeText: { color: colors.textMuted, fontWeight: "600" },
+  headerText: { gap: 2 },
+  title: { ...type.title, fontSize: 20, color: colors.text },
+  subtitle: { ...type.label, color: colors.textMuted },
+  closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
+  closeText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
+  // A horizontal ScrollView stretches to fill its column parent unless it is
+  // told not to, which pushed the tab content to the bottom of the screen.
+  modeScroll: { flexGrow: 0, flexShrink: 0 },
   modeRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: spacing.sm,
-    paddingHorizontal: 20,
-    marginTop: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 4,
   },
-  modeChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modeChipActive: { backgroundColor: colors.accentTint, borderColor: colors.accent },
-  modeChipText: { ...type.label, color: colors.text, fontWeight: "500" },
-  modeChipTextActive: { color: colors.accent },
   form: { flex: 1, padding: 20, gap: 12 },
   row: { flexDirection: "row", gap: 12 },
   fieldLabel: { color: colors.textMuted, marginBottom: 6 },

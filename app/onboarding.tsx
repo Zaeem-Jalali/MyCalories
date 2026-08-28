@@ -150,7 +150,7 @@ function OnboardingScreenContent() {
     setStep(steps.indexOf(prev));
   };
 
-  // Canonical values (cm, lbs) derived from whichever unit the user picked —
+  // Canonical values (cm, lbs) derived from whichever unit the user picked:
   // storage and the goal formula stay in one unit regardless of input mode.
   const heightCm = round1(
     heightUnit === "cm"
@@ -481,7 +481,7 @@ function OnboardingScreenContent() {
         {currentStepKey === "review" && goals && (
           <Step
             title={`You're all set, ${firstName.trim() || "there"}`}
-            subtitle="These are your daily targets — fine-tune them anytime in Settings."
+            subtitle="These are your daily targets. Fine-tune them anytime in Settings."
           >
             <View style={styles.reviewCard}>
               <Text style={styles.reviewValue}>{goals.calorieGoal}</Text>

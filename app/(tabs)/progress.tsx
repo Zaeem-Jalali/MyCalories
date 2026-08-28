@@ -14,7 +14,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { colors, radii, spacing, type } from "../../constants/theme";
+import { colors, radii, spacing, tabular, type } from "../../constants/theme";
+import { Button } from "../../components/ui/Button";
+import { PressableScale } from "../../components/ui/PressableScale";
 import { ProgressPhotos } from "../../components/ProgressPhotos";
 import { UnitToggle } from "../../components/UnitToggle";
 import { WeightChart } from "../../components/WeightChart";
@@ -57,27 +59,28 @@ export default function ProgressScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Progress</Text>
 
-        <TouchableOpacity
+        <PressableScale
+          scaleTo={0.99}
           style={styles.reportRow}
           onPress={() => router.push("/monthlyReport")}
+          accessibilityRole="button"
+          accessibilityLabel="Open the monthly report"
         >
           <Text style={styles.reportText}>Monthly report</Text>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
+        </PressableScale>
 
         <View style={styles.row}>
           <View style={styles.card}>
             <Text style={styles.cardValue}>
               {latestWeight !== undefined
                 ? `${round1(latestWeight)} lbs`
-                : "—"}
+                : "Not set"}
             </Text>
             <Text style={styles.cardLabel}>
-              Goal{" "}
               {profile?.weightGoalLbs !== undefined
-                ? round1(profile.weightGoalLbs)
-                : "—"}{" "}
-              lbs
+                ? `Goal ${round1(profile.weightGoalLbs)} lbs`
+                : "No goal weight set"}
             </Text>
           </View>
           <View style={styles.card}>
@@ -103,9 +106,12 @@ export default function ProgressScreen() {
               keyboardType="numeric"
               placeholder={`Today's weight (${unit})`}
             />
-            <TouchableOpacity style={styles.logButton} onPress={handleLog}>
-              <Text style={styles.logButtonText}>Log</Text>
-            </TouchableOpacity>
+            <Button
+              label="Log"
+              onPress={handleLog}
+              fullWidth={false}
+              disabled={!input.trim()}
+            />
           </View>
         </View>
 
@@ -133,8 +139,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.md,
   },
-  cardValue: { fontSize: 22, fontWeight: "800", color: colors.text },
-  cardLabel: { color: colors.textMuted, marginTop: 4 },
+  cardValue: { fontSize: 22, fontWeight: "800", color: colors.text, ...tabular },
+  cardLabel: { ...type.label, color: colors.textMuted, marginTop: 4 },
   logCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -151,14 +157,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     backgroundColor: colors.background,
+    minHeight: 48,
+    ...tabular,
   },
-  logButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-  },
-  logButtonText: { ...type.bodyStrong, color: colors.onAccent },
   sectionTitle: { ...type.title, color: colors.text, marginTop: spacing.xs },
   reportRow: {
     flexDirection: "row",

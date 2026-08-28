@@ -15,8 +15,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, type } from "../constants/theme";
-import { dateFromKey, todayKey } from "../lib/dateKey";
+import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import { dateFromKey, formatDateLabel, todayKey } from "../lib/dateKey";
+import { Button } from "../components/ui/Button";
+import { Chip } from "../components/ui/Chip";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PressableScale } from "../components/ui/PressableScale";
 import { Authenticated } from "convex/react";
 import {
   ACTIVITIES,
@@ -236,10 +240,18 @@ function ExerciseScreenContent() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Log exercise — {date}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Log exercise</Text>
+          <Text style={styles.subtitle}>{formatDateLabel(date)}</Text>
+        </View>
+        <PressableScale
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={styles.closeButton}
+        >
           <Text style={styles.closeText}>Close</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -286,40 +298,24 @@ function ExerciseScreenContent() {
           <Text style={styles.fieldLabel}>Activity</Text>
           <View style={styles.chipWrapRow}>
             {ACTIVITIES.map((a) => (
-              <TouchableOpacity
+              <Chip
                 key={a}
-                style={[styles.chip, activity === a && styles.chipActive]}
+                label={ACTIVITY_LABELS[a]}
+                selected={activity === a}
                 onPress={() => setActivity(a)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    activity === a && styles.chipTextActive,
-                  ]}
-                >
-                  {ACTIVITY_LABELS[a]}
-                </Text>
-              </TouchableOpacity>
+              />
             ))}
           </View>
 
           <Text style={styles.fieldLabel}>Intensity</Text>
-          <View style={styles.intensityColumn}>
+          <View style={styles.chipWrapRow}>
             {INTENSITIES.map((i) => (
-              <TouchableOpacity
+              <Chip
                 key={i}
-                style={[styles.chip, intensity === i && styles.chipActive]}
+                label={intensityLabel(activity, i)}
+                selected={intensity === i}
                 onPress={() => setIntensity(i)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    intensity === i && styles.chipTextActive,
-                  ]}
-                >
-                  {intensityLabel(activity, i)}
-                </Text>
-              </TouchableOpacity>
+              />
             ))}
           </View>
 
@@ -331,13 +327,19 @@ function ExerciseScreenContent() {
             keyboardType="numeric"
           />
 
-          <Text style={styles.previewText}>~{preview} calories burned</Text>
-
-          <TouchableOpacity style={styles.saveButton} onPress={logExercise}>
-            <Text style={styles.saveButtonText}>
-              Add {ACTIVITY_LABELS[activity].toLowerCase()}
+          <View style={styles.previewBlock}>
+            <Text style={styles.previewLabel}>Estimated burn</Text>
+            <Text style={styles.previewValue}>
+              {preview}
+              <Text style={styles.previewUnit}> cal</Text>
             </Text>
-          </TouchableOpacity>
+          </View>
+
+          <Button
+            label={`Add ${ACTIVITY_LABELS[activity].toLowerCase()}`}
+            onPress={logExercise}
+            disabled={durationNum <= 0}
+          />
         </View>
 
         <View style={styles.scheduleCard}>
@@ -349,18 +351,20 @@ function ExerciseScreenContent() {
             </View>
           ) : (
             <View style={styles.scheduleButtonRow}>
-              <TouchableOpacity
-                style={styles.outlineButton}
-                onPress={() => uploadSchedule("camera")}
-              >
-                <Text style={styles.outlineButtonText}>Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.outlineButton}
-                onPress={() => uploadSchedule("library")}
-              >
-                <Text style={styles.outlineButtonText}>Upload</Text>
-              </TouchableOpacity>
+              <View style={styles.scheduleButton}>
+                <Button
+                  label="Take a photo"
+                  variant="secondary"
+                  onPress={() => uploadSchedule("camera")}
+                />
+              </View>
+              <View style={styles.scheduleButton}>
+                <Button
+                  label="Choose a file"
+                  variant="secondary"
+                  onPress={() => uploadSchedule("library")}
+                />
+              </View>
             </View>
           )}
         </View>
@@ -369,9 +373,9 @@ function ExerciseScreenContent() {
         {todayLogs === undefined ? (
           <Text style={styles.emptyText}>Loading…</Text>
         ) : todayLogs.length === 0 ? (
-          <Text style={styles.emptyText}>
-            Nothing logged for this date yet.
-          </Text>
+          <View style={styles.emptyWrap}>
+            <EmptyState message="No exercise logged for this day yet." />
+          </View>
         ) : (
           <View style={styles.logList}>
             {todayLogs.map((item) => (
@@ -407,8 +411,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  title: { ...type.bodyStrong, fontSize: 18, color: colors.text },
-  closeText: { color: colors.textMuted, fontWeight: "600" },
+  headerText: { gap: 2 },
+  title: { ...type.title, fontSize: 20, color: colors.text },
+  subtitle: { ...type.label, color: colors.textMuted },
+  closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
+  closeText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
   scrollContent: { paddingBottom: spacing.xl },
   plannedCard: {
     marginHorizontal: spacing.lg,
@@ -439,18 +446,6 @@ const styles = StyleSheet.create({
   form: { padding: spacing.lg, gap: spacing.sm },
   fieldLabel: { ...type.label, color: colors.textMuted, marginTop: spacing.sm },
   chipWrapRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  intensityColumn: { gap: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.accentTint, borderColor: colors.accent },
-  chipText: { ...type.bodyStrong, color: colors.text },
-  chipTextActive: { color: colors.accent },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -460,15 +455,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  previewText: { ...type.body, color: colors.textMuted },
-  saveButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.sm,
+  previewBlock: { gap: 2, marginTop: spacing.xs },
+  previewValue: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "700",
+    color: colors.text,
+    ...tabular,
   },
-  saveButtonText: { ...type.bodyStrong, color: colors.onAccent },
+  previewLabel: { ...type.label, color: colors.textMuted },
+  previewUnit: { fontSize: 17, fontWeight: "400", color: colors.textMuted },
   scheduleCard: {
     marginHorizontal: spacing.lg,
     padding: spacing.md,
@@ -477,16 +473,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   scheduleButtonRow: { flexDirection: "row", gap: spacing.sm },
-  outlineButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm + 2,
-    alignItems: "center",
-    backgroundColor: colors.background,
-  },
-  outlineButtonText: { ...type.bodyStrong, color: colors.text },
+  scheduleButton: { flex: 1 },
+  emptyWrap: { paddingHorizontal: spacing.lg, marginTop: spacing.sm },
   loadingRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   emptyInlineText: { color: colors.textMuted },
   sectionTitle: {

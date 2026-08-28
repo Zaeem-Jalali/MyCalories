@@ -2,7 +2,8 @@ import { useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 
-import { colors, radii, spacing, type } from "../constants/theme";
+import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import { dateFromKey } from "../lib/dateKey";
 
 const CHART_HEIGHT = 160;
 const PADDING = 24;
@@ -74,21 +75,25 @@ export function WeightChart({
         </Svg>
       ) : null}
       <View style={styles.axisRow}>
-        <Text style={styles.axisLabel}>{entries[0].date.slice(5)}</Text>
+        <Text style={styles.axisLabel}>{axisLabel(entries[0].date)}</Text>
         <Text style={styles.axisLabel}>
-          {entries[entries.length - 1].date.slice(5)}
+          {axisLabel(entries[entries.length - 1].date)}
         </Text>
       </View>
     </View>
   );
 }
 
+// Axis ticks read as dates, not as fragments of the storage key.
+function axisLabel(key: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    month: "short",
+  }).format(dateFromKey(key));
+}
+
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.sm,
-  },
+  container: { paddingVertical: spacing.sm },
   empty: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -104,5 +109,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: PADDING - spacing.sm,
     marginTop: -spacing.sm,
   },
-  axisLabel: { ...type.label, color: colors.textMuted },
+  axisLabel: { ...type.label, ...tabular, color: colors.textMuted },
 });

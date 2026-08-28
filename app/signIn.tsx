@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "../components/ui/Button";
+import { PressableScale } from "../components/ui/PressableScale";
 import { colors, radii, spacing, type } from "../constants/theme";
 
 // Convex Auth throws plain Errors, and a deployed backend redacts those to a
@@ -80,13 +82,16 @@ export default function SignInScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.content}>
-          <TouchableOpacity
+          <PressableScale
             onPress={() =>
               router.canGoBack() ? router.back() : router.replace("/welcome")
             }
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.backButton}
           >
             <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
+          </PressableScale>
 
           <Text style={styles.title}>
             {mode === "signUp" ? "Create your account" : "Sign in"}
@@ -120,32 +125,27 @@ export default function SignInScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.primaryButton, busy && styles.primaryButtonBusy]}
+          <Button
+            label={mode === "signUp" ? "Create account" : "Sign in"}
             onPress={submit}
-            disabled={busy}
-          >
-            {busy ? (
-              <ActivityIndicator color={colors.onAccent} />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {mode === "signUp" ? "Create account" : "Sign in"}
-              </Text>
-            )}
-          </TouchableOpacity>
+            busy={busy}
+          />
 
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.98}
             onPress={() => {
               setError(null);
               setMode(mode === "signUp" ? "signIn" : "signUp");
             }}
+            accessibilityRole="button"
+            style={styles.switchButton}
           >
             <Text style={styles.switchText}>
               {mode === "signUp"
                 ? "I already have an account"
                 : "I need an account"}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -156,7 +156,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
-  backText: { color: colors.textMuted, fontWeight: "600" },
+  backButton: { alignSelf: "flex-start", paddingVertical: spacing.xs },
+  backText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
+  switchButton: { paddingVertical: spacing.sm, alignItems: "center" },
   title: { ...type.title, color: colors.text, marginTop: spacing.sm },
   field: { gap: spacing.xs },
   label: { ...type.label, color: colors.textMuted },
@@ -170,15 +172,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: { ...type.label, color: colors.danger },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  primaryButtonBusy: { opacity: 0.7 },
-  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
   switchText: {
     ...type.label,
     color: colors.accent,

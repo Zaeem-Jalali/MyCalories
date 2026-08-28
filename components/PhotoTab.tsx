@@ -15,7 +15,8 @@ import {
 
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { colors } from "../constants/theme";
+import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import { Button } from "./ui/Button";
 import type { IdentifiedIngredient } from "../convex/vision";
 
 type EditableIngredient = IdentifiedIngredient & { include: boolean };
@@ -188,21 +189,15 @@ export function PhotoTab({
     return (
       <View style={styles.pickerContainer}>
         <Text style={styles.hint}>
-          Snap a photo and each item gets its own portion estimate — nothing
-          gets logged as a generic "1 serving."
+          Snap a photo and each item gets its own portion estimate. Nothing is
+          logged as a generic "1 serving".
         </Text>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => pickAndAnalyze("camera")}
-        >
-          <Text style={styles.primaryButtonText}>Take Photo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryButton}
+        <Button label="Take a photo" onPress={() => pickAndAnalyze("camera")} />
+        <Button
+          label="Choose from your library"
+          variant="secondary"
           onPress={() => pickAndAnalyze("library")}
-        >
-          <Text style={styles.secondaryButtonText}>Choose from Library</Text>
-        </TouchableOpacity>
+        />
       </View>
     );
   }
@@ -287,26 +282,21 @@ export function PhotoTab({
 
       {ingredients ? (
         <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => {
-              setPhotoUri(null);
-              setIngredients(null);
-              setMealName("");
-              setNameEdited(false);
-            }}
-          >
-            <Text style={styles.secondaryButtonText}>Retake</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.primaryButton, { flex: 1 }]}
-            onPress={saveAll}
-            disabled={saving}
-          >
-            <Text style={styles.primaryButtonText}>
-              {saving ? "Saving…" : "Add to log"}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonHalf}>
+            <Button
+              label="Retake"
+              variant="secondary"
+              onPress={() => {
+                setPhotoUri(null);
+                setIngredients(null);
+                setMealName("");
+                setNameEdited(false);
+              }}
+            />
+          </View>
+          <View style={styles.buttonGrow}>
+            <Button label="Add to log" onPress={saveAll} busy={saving} />
+          </View>
         </View>
       ) : null}
     </ScrollView>
@@ -336,70 +326,69 @@ function IngredientField({
 }
 
 const styles = StyleSheet.create({
-  pickerContainer: { flex: 1, padding: 20, gap: 12, justifyContent: "center" },
-  hint: { color: colors.textMuted, textAlign: "center" },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  primaryButtonText: { color: colors.onAccent, fontWeight: "700" },
-  secondaryButton: {
+  pickerContainer: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 14,
+    padding: spacing.lg,
+    gap: spacing.sm + 4,
+    justifyContent: "center",
+  },
+  hint: { ...type.body, color: colors.textMuted, textAlign: "center" },
+  form: { flex: 1, padding: spacing.lg },
+  preview: { width: "100%", height: 200, borderRadius: radii.lg },
+  loadingRow: {
+    flexDirection: "row",
+    gap: spacing.sm + 2,
     alignItems: "center",
   },
-  secondaryButtonText: { color: colors.text, fontWeight: "600" },
-  form: { flex: 1, padding: 20 },
-  preview: { width: "100%", height: 200, borderRadius: 16 },
-  loadingRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   ingredientCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    borderRadius: radii.md,
+    padding: spacing.sm + 6,
+    gap: spacing.sm + 2,
   },
-  ingredientHeaderRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  ingredientHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm + 2,
+  },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: radii.sm - 2,
     borderWidth: 2,
     borderColor: colors.border,
   },
   checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
   ingredientName: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
+    ...type.bodyStrong,
     color: colors.text,
   },
-  ingredientFieldsRow: { flexDirection: "row", gap: 8 },
+  ingredientFieldsRow: { flexDirection: "row", gap: spacing.sm },
   fieldGroup: { flex: 1, alignItems: "center" },
   fieldInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: radii.sm,
+    paddingVertical: spacing.sm,
     textAlign: "center",
     color: colors.text,
     width: "100%",
+    ...tabular,
   },
+  buttonHalf: { width: 120 },
+  buttonGrow: { flex: 1 },
   fieldLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  mealNameGroup: { gap: 6 },
+  mealNameGroup: { gap: spacing.xs + 2 },
   mealNameInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    fontWeight: "600",
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    minHeight: 48,
+    ...type.bodyStrong,
     color: colors.text,
   },
-  buttonRow: { flexDirection: "row", gap: 12 },
+  buttonRow: { flexDirection: "row", gap: spacing.sm + 4 },
 });

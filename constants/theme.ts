@@ -9,6 +9,10 @@ export const colors = {
   text: "#1C1B1A",
   textMuted: "#736C62",
   border: "#E8E2D8",
+  // The unfilled part of a progress track. A hairline border is too faint to
+  // read as a track once it sits on the raised surface, so this is a step
+  // darker than `border` while staying quieter than any text.
+  track: "#DBD2C2",
 
   accent: "#A15C00",
   accentTint: "#FBEEDC",
@@ -49,6 +53,28 @@ export const type = {
   bodyStrong: { fontSize: 16, fontWeight: "600" as const, lineHeight: 22 },
   label: { fontSize: 13, fontWeight: "500" as const, lineHeight: 17 },
 };
+
+// Every figure the user reads (calories, macros, weights, day counts) uses
+// this, so digits keep a fixed width and columns of numbers line up instead
+// of shifting as the values change.
+export const tabular = { fontVariant: ["tabular-nums" as const] };
+
+// One elevation level, tinted with the text ink rather than black, so a
+// raised surface reads warm against the cream palette. Surfaces are separated
+// by background shifts; this is only for things that genuinely float.
+export const elevation = {
+  floating: {
+    shadowColor: colors.text,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+};
+
+// Opacity applied to a control that is present but not currently usable.
+// A disabled control must look disabled, not merely refuse to respond.
+export const disabledOpacity = 0.45;
 
 // 150ms for press/selection feedback, 250ms for structural transitions
 // (step changes, entrances) — matches the motion spec used across the app.

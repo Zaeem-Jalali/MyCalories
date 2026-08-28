@@ -4,18 +4,29 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FadeInUp, useBumpOnChange } from "../../components/ui/motion";
+import { PressableScale } from "../../components/ui/PressableScale";
+import { ProgressTrack } from "../../components/ui/ProgressTrack";
 import { api } from "../../convex/_generated/api";
-import { colors } from "../../constants/theme";
-import { toDateKey, todayKey } from "../../lib/dateKey";
+import {
+  colors,
+  elevation,
+  radii,
+  spacing,
+  tabular,
+  type,
+} from "../../constants/theme";
+import { formatDateLabel, toDateKey, todayKey } from "../../lib/dateKey";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -44,11 +55,12 @@ function MacroStat({
 }) {
   return (
     <View style={styles.macroCard}>
-      <Text style={[styles.macroValue, { color }]}>
-        {Math.round(eaten)}
-        <Text style={styles.macroGoal}>/{goal}g</Text>
-      </Text>
       <Text style={styles.macroLabel}>{label}</Text>
+      <Text style={styles.macroValue}>
+        {Math.round(eaten)}
+        <Text style={styles.macroGoal}> / {goal}g</Text>
+      </Text>
+      <ProgressTrack value={eaten} goal={goal} color={color} height={4} />
     </View>
   );
 }
@@ -61,10 +73,12 @@ export default function HomeScreen() {
   const profile = useQuery(api.profile.get, {});
   const streak = useQuery(api.streak.current, { today: todayKey() });
   const burned = useQuery(api.exerciseLogs.dailyCaloriesBurned, { date });
+  const streakScale = useBumpOnChange(streak);
 
   const calorieGoal = profile?.calorieGoal ?? 2000;
   const adjustedGoal = calorieGoal + (burned ?? 0);
   const eaten = totals?.calories ?? 0;
+  const remaining = Math.round(adjustedGoal - eaten);
   const today = todayKey();
   const week = currentWeekDates();
 
@@ -84,10 +98,13 @@ export default function HomeScreen() {
             {profile?.name ? `Hi, ${profile.name}` : "CalorieAI"}
           </Text>
           {streak !== undefined && streak > 0 ? (
-            <View style={styles.streakPill}>
+            <Animated.View
+              style={[styles.streakPill, { transform: [{ scale: streakScale }] }]}
+              accessibilityLabel={`${streak} day streak`}
+            >
               <Ionicons name="flame" size={14} color={colors.accent} />
               <Text style={styles.streakText}>{streak}</Text>
-            </View>
+            </Animated.View>
           ) : null}
         </View>
 
@@ -97,10 +114,14 @@ export default function HomeScreen() {
             const selected = key === date;
             const isToday = key === today;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={key}
+                scaleTo={0.94}
                 style={[styles.dayPill, selected && styles.dayPillSelected]}
                 onPress={() => setDate(key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={formatDateLabel(key)}
               >
                 <Text
                   style={[
@@ -114,37 +135,65 @@ export default function HomeScreen() {
                   style={[
                     styles.dayNumber,
                     selected && styles.dayLabelSelected,
-                    isToday && !selected && styles.dayNumberToday,
                   ]}
                 >
                   {d.getDate()}
                 </Text>
-              </TouchableOpacity>
+                {/* Today keeps a marker even when another day is selected,
+                    so the strip never loses its anchor. */}
+                <View
+                  style={[
+                    styles.dayDot,
+                    isToday && !selected && styles.dayDotToday,
+                  ]}
+                />
+              </PressableScale>
             );
           })}
         </View>
 
+        {/* The signature: one big honest number, the remainder stated in
+            words, and a track that answers "how much of the day is left"
+            before any reading happens. Everything else on the screen is
+            deliberately quieter than this. */}
         <View style={styles.calorieCard}>
-          <View>
-            <Text style={styles.calorieValue}>
-              {Math.round(eaten)}
-              <Text style={styles.calorieGoal}>/{adjustedGoal}</Text>
-            </Text>
-            <Text style={styles.calorieLabel}>
-              {burned ? `Calories eaten · goal ${calorieGoal} + ${burned} exercise` : "Calories eaten"}
-            </Text>
-          </View>
+          <Text style={styles.calorieLabel}>Calories eaten</Text>
+          <Text style={styles.calorieValue}>
+            {Math.round(eaten)}
+            <Text style={styles.calorieGoal}> / {adjustedGoal}</Text>
+          </Text>
+          <ProgressTrack
+            value={eaten}
+            goal={adjustedGoal}
+            color={colors.accent}
+            semantic
+          />
+          <Text style={styles.calorieRemaining}>
+            {remaining > 0
+              ? `${remaining} left`
+              : remaining === 0
+                ? "Right on your goal"
+                : `${Math.abs(remaining)} over`}
+            {burned ? ` · ${burned} earned back from exercise` : ""}
+          </Text>
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={styles.exerciseRow}
           onPress={() => router.push({ pathname: "/exercise", params: { date } })}
+          accessibilityRole="button"
+          accessibilityLabel="Log exercise"
         >
           <Ionicons name="walk-outline" size={18} color={colors.accent} />
           <Text style={styles.exerciseText}>
-            {burned ? `${burned} cal from exercise today` : "Log exercise"}
+            {burned ? `${burned} cal from exercise` : "Log exercise"}
           </Text>
-        </TouchableOpacity>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.textMuted}
+          />
+        </PressableScale>
 
         <View style={styles.macroRow}>
           <MacroStat
@@ -167,19 +216,36 @@ export default function HomeScreen() {
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Log for {date}</Text>
+        <Text style={styles.sectionTitle}>{formatDateLabel(date)}</Text>
         {logs === undefined ? (
-          <Text style={styles.emptyText}>Loading…</Text>
+          // Skeletons match the loaded row geometry, so nothing jumps when
+          // the real rows arrive.
+          <View>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={styles.logRow}>
+                <View style={[styles.skeleton, styles.skeletonThumb]} />
+                <View style={styles.logMain}>
+                  <View style={[styles.skeleton, styles.skeletonLine]} />
+                </View>
+                <View style={[styles.skeleton, styles.skeletonValue]} />
+              </View>
+            ))}
+          </View>
         ) : logs.length === 0 ? (
-          <Text style={styles.emptyText}>
-            Nothing logged for this date yet.
-          </Text>
+          <EmptyState
+            message="Nothing logged for this day yet."
+            actionLabel="Log food"
+            onAction={() =>
+              router.push({ pathname: "/log", params: { date } })
+            }
+          />
         ) : (
-          logs.map((log) => {
+          logs.map((log, index) => {
             const breakdown = log.ingredients?.length ?? 0;
             return (
-              <TouchableOpacity
-                key={log._id}
+              <FadeInUp key={log._id} index={index}>
+              <PressableScale
+                scaleTo={0.99}
                 style={styles.logRow}
                 onPress={() =>
                   router.push({
@@ -207,20 +273,22 @@ export default function HomeScreen() {
                 <Text style={styles.logCalories}>
                   {Math.round(log.calories)} cal
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
+              </FadeInUp>
             );
           })
         )}
       </ScrollView>
 
-      <TouchableOpacity
+      <PressableScale
+        scaleTo={0.92}
         style={styles.fab}
         onPress={() => router.push({ pathname: "/log", params: { date } })}
         accessibilityRole="button"
         accessibilityLabel="Log food"
       >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+        <Ionicons name="add" size={28} color={colors.onAccent} />
+      </PressableScale>
     </SafeAreaView>
   );
 }
@@ -228,104 +296,128 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { alignItems: "center", justifyContent: "center" },
-  content: { padding: 20, gap: 16, paddingBottom: 100 },
+  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 104 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  title: { fontSize: 24, fontWeight: "700", color: colors.text },
+  title: { ...type.title, color: colors.text },
   streakPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: spacing.xs + 2,
     backgroundColor: colors.accentTint,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.pill,
   },
-  streakText: { fontWeight: "600", color: colors.accent },
+  streakText: { ...type.label, ...tabular, color: colors.accent, fontWeight: "700" },
   dayStrip: { flexDirection: "row", justifyContent: "space-between" },
   dayPill: {
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: 14,
+    gap: 2,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs + 2,
+    borderRadius: radii.md,
     minWidth: 40,
   },
   dayPillSelected: { backgroundColor: colors.accent },
   dayLabel: { fontSize: 12, color: colors.textMuted },
   dayLabelSelected: { color: colors.onAccent },
-  dayNumber: { fontSize: 15, fontWeight: "600", color: colors.text, marginTop: 2 },
-  dayNumberToday: { color: colors.protein },
+  dayNumber: { fontSize: 15, fontWeight: "600", color: colors.text, ...tabular },
+  dayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
+    backgroundColor: "transparent",
+  },
+  dayDotToday: { backgroundColor: colors.accent },
+
   calorieCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
-  calorieValue: { fontSize: 36, fontWeight: "800", color: colors.text },
+  calorieLabel: { ...type.label, color: colors.textMuted },
+  calorieValue: {
+    fontSize: 44,
+    lineHeight: 50,
+    fontWeight: "800",
+    color: colors.text,
+    letterSpacing: -1,
+    ...tabular,
+  },
   calorieGoal: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: "400",
     color: colors.textMuted,
+    letterSpacing: 0,
   },
-  calorieLabel: { color: colors.textMuted, marginTop: 4 },
+  calorieRemaining: { ...type.label, ...tabular, color: colors.textMuted },
+
   exerciseRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm + 4,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
   },
-  exerciseText: { color: colors.text, fontWeight: "500" },
-  macroRow: { flexDirection: "row", gap: 12 },
+  exerciseText: { ...type.body, color: colors.text, flex: 1 },
+
+  macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
   macroCard: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 14,
-    alignItems: "center",
+    borderRadius: radii.md,
+    padding: spacing.sm + 4,
+    gap: spacing.xs + 2,
   },
-  macroValue: { fontSize: 18, fontWeight: "700" },
-  macroGoal: { fontSize: 13, color: colors.textMuted, fontWeight: "400" },
-  macroLabel: { color: colors.textMuted, marginTop: 4, fontSize: 13 },
+  macroLabel: { fontSize: 12, color: colors.textMuted },
+  macroValue: { fontSize: 17, fontWeight: "700", color: colors.text, ...tabular },
+  macroGoal: { fontSize: 12, color: colors.textMuted, fontWeight: "400" },
+
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...type.bodyStrong,
+    fontSize: 17,
     color: colors.text,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
-  emptyText: { color: colors.textMuted },
   logRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
+    gap: spacing.sm + 4,
+    paddingVertical: spacing.sm + 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  logThumbnail: { width: 44, height: 44, borderRadius: 10 },
+  logThumbnail: { width: 44, height: 44, borderRadius: radii.sm + 2 },
   logMain: { flex: 1, gap: 2 },
-  logName: { color: colors.text, fontWeight: "500" },
+  logName: { ...type.body, fontWeight: "500", color: colors.text },
   logMeta: { fontSize: 13, color: colors.textMuted },
-  logCalories: { color: colors.textMuted },
+  logCalories: { ...type.label, ...tabular, color: colors.textMuted },
+
+  skeleton: { backgroundColor: colors.border, borderRadius: radii.sm },
+  skeletonThumb: { width: 44, height: 44, borderRadius: radii.sm + 2 },
+  skeletonLine: { height: 14, width: "70%" },
+  skeletonValue: { height: 12, width: 48 },
+
   fab: {
     position: "absolute",
-    right: 24,
-    bottom: 24,
+    right: spacing.lg,
+    bottom: spacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: colors.text,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...elevation.floating,
   },
-  fabText: { color: colors.onAccent, fontSize: 28, lineHeight: 30 },
 });

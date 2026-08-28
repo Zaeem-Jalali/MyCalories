@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "../components/ui/Button";
 import { colors, motion, radii, spacing, type } from "../constants/theme";
 
 // One entrance, choreographed: the mark settles first, the words follow it.
@@ -75,18 +76,15 @@ export default function WelcomeScreen() {
       </View>
 
       <Animated.View style={[styles.actions, { opacity: wordsOpacity }]}>
-        <TouchableOpacity
-          style={styles.primaryButton}
+        <Button
+          label="Create an account"
           onPress={() => router.push("/signIn?mode=signUp")}
-        >
-          <Text style={styles.primaryButtonText}>Create an account</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryButton}
+        />
+        <Button
+          label="I already have one"
+          variant="secondary"
           onPress={() => router.push("/signIn?mode=signIn")}
-        >
-          <Text style={styles.secondaryButtonText}>I already have one</Text>
-        </TouchableOpacity>
+        />
       </Animated.View>
     </SafeAreaView>
   );
@@ -123,19 +121,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   actions: { padding: spacing.lg, gap: spacing.sm },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  secondaryButtonText: { ...type.bodyStrong, color: colors.text },
 });

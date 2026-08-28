@@ -17,3 +17,20 @@ export function dateFromKey(key: string): Date {
   const [year, month, day] = key.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
+
+// Screens showed the raw storage key ("2026-08-28"). People read their own
+// day, not an ISO string, so headings use this and the key stays internal.
+export function formatDateLabel(key: string): string {
+  const today = todayKey();
+  if (key === today) return "Today";
+
+  const yesterday = new Date(dateFromKey(today));
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (key === toDateKey(yesterday)) return "Yesterday";
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(dateFromKey(key));
+}

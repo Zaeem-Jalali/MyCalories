@@ -17,7 +17,9 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 
 import { WeightChart } from "../components/WeightChart";
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import { Button } from "../components/ui/Button";
+import { PressableScale } from "../components/ui/PressableScale";
 import { todayKey } from "../lib/dateKey";
 
 const MONTH_NAMES = [
@@ -122,42 +124,51 @@ function MonthlyReportContent() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <PressableScale
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
+          style={styles.iconButton}
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={shareReport} disabled={sharing || !report}>
+        </PressableScale>
+        <PressableScale
+          onPress={shareReport}
+          disabled={sharing || !report}
+          accessibilityRole="button"
+          accessibilityLabel="Share this report"
+          style={styles.iconButton}
+        >
           <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.monthRow}>
-          <TouchableOpacity
+          <PressableScale
             onPress={() => shiftMonth(-1)}
             accessibilityRole="button"
             accessibilityLabel="Previous month"
+            style={styles.iconButton}
           >
             <Ionicons name="chevron-back" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
           <Text style={styles.monthLabel}>
             {MONTH_NAMES[month - 1]} {year}
           </Text>
-          <TouchableOpacity
+          <PressableScale
             onPress={() => shiftMonth(1)}
             disabled={isCurrentMonth}
             accessibilityRole="button"
             accessibilityLabel="Next month"
+            style={styles.iconButton}
           >
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={isCurrentMonth ? colors.border : colors.textMuted}
+              color={isCurrentMonth ? colors.track : colors.textMuted}
             />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
         {report === undefined ? (
@@ -170,20 +181,27 @@ function MonthlyReportContent() {
               <Text style={styles.cardTitle}>Weight</Text>
               {report.weight.changeLbs === null ? (
                 <Text style={styles.muted}>
-                  No weight logged this month.
+                  {report.weight.series.length === 0
+                    ? "No weight logged this month."
+                    : "One weigh-in this month, so there is no change to show yet."}
                 </Text>
               ) : (
                 <>
                   <Text style={styles.bigNumber}>
                     {report.weight.changeLbs > 0 ? "+" : ""}
-                    {report.weight.changeLbs} lbs
+                    {report.weight.changeLbs}
+                    <Text style={styles.bigNumberUnit}> lbs</Text>
                   </Text>
                   <Text style={styles.muted}>
                     {report.weight.firstLbs} to {report.weight.lastLbs} lbs
                   </Text>
                 </>
               )}
-              <WeightChart entries={report.weight.series} />
+              {/* The chart only earns its space once there is a line to draw;
+                  below that it would be an empty box inside a card. */}
+              {report.weight.series.length >= 2 ? (
+                <WeightChart entries={report.weight.series} />
+              ) : null}
             </View>
 
             <View style={styles.card}>
@@ -191,7 +209,8 @@ function MonthlyReportContent() {
               <Text style={styles.bigNumber}>
                 {report.adherence.daysLogged}
                 <Text style={styles.bigNumberMuted}>
-                  /{report.adherence.daysElapsed}
+                  {" / "}
+                  {report.adherence.daysElapsed}
                 </Text>
               </Text>
               <Text style={styles.muted}>
@@ -249,15 +268,12 @@ function MonthlyReportContent() {
         )}
 
         {report && !shownInsights ? (
-          <TouchableOpacity
-            style={[styles.primaryButton, thinking && styles.primaryButtonBusy]}
+          <Button
+            label="Write the review"
             onPress={readReview}
-            disabled={thinking || report.foods.length === 0}
-          >
-            <Text style={styles.primaryButtonText}>
-              {thinking ? "Reading your month…" : "Write the review"}
-            </Text>
-          </TouchableOpacity>
+            busy={thinking}
+            disabled={report.foods.length === 0}
+          />
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -298,9 +314,12 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   cardTitle: { ...type.bodyStrong, color: colors.text },
-  bigNumber: { ...type.display, color: colors.text },
-  bigNumberMuted: { ...type.title, color: colors.textMuted },
+  bigNumber: { ...type.display, ...tabular, color: colors.text, letterSpacing: -0.5 },
+  bigNumberMuted: { ...type.title, ...tabular, color: colors.textMuted, fontWeight: "400" },
+  bigNumberUnit: { ...type.title, color: colors.textMuted, fontWeight: "400" },
+  iconButton: { padding: spacing.xs, minHeight: 40, justifyContent: "center" },
   muted: { ...type.label, color: colors.textMuted },
+  foodValue: { ...type.label, ...tabular, color: colors.textMuted },
   body: { ...type.body, color: colors.text },
   foodRow: {
     flexDirection: "row",
@@ -316,12 +335,4 @@ const styles = StyleSheet.create({
   listBlock: { marginTop: spacing.sm, gap: 2 },
   listTitle: { ...type.label, color: colors.accent },
   listItem: { ...type.body, color: colors.text },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  primaryButtonBusy: { opacity: 0.7 },
-  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
 });

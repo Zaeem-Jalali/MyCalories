@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
@@ -16,7 +17,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { colors, radii, spacing, type } from "../../constants/theme";
+import { colors, radii, spacing, tabular, type } from "../../constants/theme";
+import { Button } from "../../components/ui/Button";
+import { Chip } from "../../components/ui/Chip";
+import { PressableScale } from "../../components/ui/PressableScale";
 import {
   cancelDailyReminder,
   getDailyReminderTime,
@@ -24,6 +28,11 @@ import {
 } from "../../lib/notifications";
 
 const DIRECTIONS = ["cut", "maintain", "bulk"] as const;
+const DIRECTION_LABELS: Record<(typeof DIRECTIONS)[number], string> = {
+  cut: "Cut",
+  maintain: "Maintain",
+  bulk: "Bulk",
+};
 const REMINDER_TIMES = [
   { hour: 8, label: "8 AM" },
   { hour: 12, label: "12 PM" },
@@ -71,7 +80,7 @@ export default function SettingsScreen() {
       if (Platform.OS === "web") {
         Alert.alert(
           "Not available",
-          "Reminders need a phone — this isn't supported in the web preview.",
+          "Reminders need a phone. This isn't supported in the web preview.",
         );
         return;
       }
@@ -177,38 +186,40 @@ export default function SettingsScreen() {
           <Text style={styles.accountEmail}>
             {account?.email ?? "Signed in"}
           </Text>
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.99}
             style={styles.accountAction}
             onPress={() => router.push("/onboarding?edit=1")}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile answers"
           >
             <Text style={styles.accountActionText}>Edit profile answers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.accountAction} onPress={confirmSignOut}>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textMuted}
+            />
+          </PressableScale>
+          <PressableScale
+            scaleTo={0.99}
+            style={styles.accountAction}
+            onPress={confirmSignOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
             <Text style={styles.signOutText}>Sign out</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
         <Text style={styles.sectionTitle}>Goal direction</Text>
         <View style={styles.directionRow}>
           {DIRECTIONS.map((direction) => (
-            <TouchableOpacity
+            <Chip
               key={direction}
+              label={DIRECTION_LABELS[direction]}
+              selected={goalDirection === direction}
               onPress={() => setGoalDirection(direction)}
-              style={[
-                styles.directionChip,
-                goalDirection === direction && styles.directionChipActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.directionChipText,
-                  goalDirection === direction &&
-                    styles.directionChipTextActive,
-                ]}
-              >
-                {direction}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
 
@@ -229,9 +240,7 @@ export default function SettingsScreen() {
         />
         <Field label="Fat goal (g)" value={fatGoalG} onChangeText={setFatGoalG} />
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
+        <Button label="Save goals" onPress={handleSave} />
 
         <View style={styles.reminderCard}>
           <View style={styles.reminderRow}>
@@ -246,29 +255,17 @@ export default function SettingsScreen() {
           {reminderEnabled ? (
             <View style={styles.reminderTimeRow}>
               {REMINDER_TIMES.map((option) => (
-                <TouchableOpacity
+                <Chip
                   key={option.hour}
+                  label={option.label}
+                  selected={reminderHour === option.hour}
                   onPress={() => changeReminderTime(option.hour)}
-                  style={[
-                    styles.directionChip,
-                    reminderHour === option.hour && styles.directionChipActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.directionChipText,
-                      reminderHour === option.hour &&
-                        styles.directionChipTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           ) : (
             <Text style={styles.reminderHint}>
-              One reminder a day, nothing else — no streak-shaming, no social
+              One reminder a day, nothing else. No streak-shaming, no social
               noise.
             </Text>
           )}
@@ -302,41 +299,22 @@ function Field({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 14 },
-  title: { fontSize: 24, fontWeight: "700", color: colors.text },
-  sectionTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
-  directionRow: { flexDirection: "row", gap: 10 },
-  directionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  directionChipActive: { backgroundColor: colors.accent },
-  directionChipText: {
-    color: colors.text,
-    fontWeight: "500",
-    textTransform: "capitalize",
-  },
-  directionChipTextActive: { color: colors.onAccent },
-  fieldLabel: { color: colors.textMuted, marginBottom: 6 },
+  content: { padding: spacing.lg, gap: spacing.sm + 4, paddingBottom: spacing.xl },
+  title: { ...type.title, fontSize: 24, color: colors.text },
+  sectionTitle: { ...type.bodyStrong, color: colors.text },
+  directionRow: { flexDirection: "row", gap: spacing.sm },
+  fieldLabel: { ...type.label, color: colors.textMuted, marginBottom: spacing.xs + 2 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
     fontSize: 16,
     color: colors.text,
+    minHeight: 48,
+    ...tabular,
   },
-  saveButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  saveButtonText: { color: colors.onAccent, fontWeight: "700" },
   accountCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -345,7 +323,11 @@ const styles = StyleSheet.create({
   },
   accountEmail: { ...type.label, color: colors.textMuted },
   accountAction: {
-    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm + 4,
+    minHeight: 48,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },

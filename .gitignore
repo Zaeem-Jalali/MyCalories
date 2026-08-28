@@ -39,3 +39,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Browser-driven verification output
+.playwright-mcp/
+before-*.png
+after-*.png

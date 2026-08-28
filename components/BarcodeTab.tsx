@@ -167,7 +167,7 @@ export function BarcodeTab({
         <Text style={styles.productName}>{product.name}</Text>
         {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
         <Text style={styles.fieldLabel}>
-          Amount ({product.unit}){product.packageAmount ? " — from the package size" : ""}
+          Amount ({product.unit}){product.packageAmount ? " (from the package size)" : ""}
         </Text>
         <TextInput
           style={styles.input}
