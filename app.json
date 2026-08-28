@@ -48,7 +48,8 @@
           "icon": "./assets/icon.png",
           "color": "#A15C00"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},

@@ -15,8 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { colors, radii, spacing, type } from "../constants/theme";
+import { Authenticated } from "convex/react";
 
-export default function MealDetailScreen() {
+function MealDetailScreenContent() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   // A deep link or a restored navigation state can land here without a usable
@@ -156,3 +157,12 @@ const styles = StyleSheet.create({
   ingredientCalories: { color: colors.textMuted },
   emptyText: { color: colors.textMuted },
 });
+
+// Mounted only with a session: every query on this screen is account-scoped.
+export default function MealDetailScreen() {
+  return (
+    <Authenticated>
+      <MealDetailScreenContent />
+    </Authenticated>
+  );
+}

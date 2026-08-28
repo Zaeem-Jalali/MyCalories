@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { action } from "./_generated/server";
 import { ActionCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
@@ -50,7 +51,7 @@ written about the session (exercise names, sets, reps, distance) in "notes", or 
 Respond with ONLY a JSON array, no other text, in this exact shape:
 [{"dayOfWeek": number, "activity": "walk" | "run" | "cycle" | "weights", "durationMinutes": number, "intensity": "slow" | "normal" | "brisk", "notes": string | null}]`;
 
-const FOOD_PHOTO_PROMPT =`You are a nutrition estimation assistant. Look at this food photo and identify each distinct
+const FOOD_PHOTO_PROMPT = `You are a nutrition estimation assistant. Look at this food photo and identify each distinct
 ingredient or food item visible. For each one, estimate its portion size in grams based on what's
 actually visible in the photo (plate size, depth, typical density) — never assume a default serving,
 always reason about the real quantity shown. Then estimate calories, protein, carbs, and fat for that
@@ -86,10 +87,15 @@ async function callVisionModel<T>(
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Header, not a query param: a fetch-level failure can embed the request
+      // URL in its message, and that message reaches the logs.
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify({
         contents: [
           {
@@ -129,6 +135,11 @@ async function readStorageAsBase64(
   ctx: ActionCtx,
   storageId: Id<"_storage">,
 ): Promise<{ base64Image: string; mimeType: string }> {
+  // These actions read arbitrary stored files and spend Gemini quota, so they
+  // are closed to unauthenticated callers like every other data function.
+  if ((await getAuthUserId(ctx)) === null) {
+    throw new Error("Not signed in");
+  }
   const blob = await ctx.storage.get(storageId);
   if (!blob) {
     throw new Error("Photo not found in storage");

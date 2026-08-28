@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { dateFromKey, todayKey } from "../lib/dateKey";
+import { Authenticated } from "convex/react";
 import {
   ACTIVITIES,
   ACTIVITY_LABELS,
@@ -41,7 +42,7 @@ function dayOfWeekFor(dateKey: string): number {
   return dateFromKey(dateKey).getDay();
 }
 
-export default function ExerciseScreen() {
+function ExerciseScreenContent() {
   const router = useRouter();
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const date = dateParam ?? todayKey();
@@ -514,3 +515,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
 });
+
+// Mounted only with a session: every query on this screen is account-scoped.
+export default function ExerciseScreen() {
+  return (
+    <Authenticated>
+      <ExerciseScreenContent />
+    </Authenticated>
+  );
+}

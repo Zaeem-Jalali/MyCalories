@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -59,7 +59,7 @@ export default function HomeScreen() {
   const totals = useQuery(api.foodLogs.dailyTotals, { date });
   const logs = useQuery(api.foodLogs.listByDate, { date });
   const profile = useQuery(api.profile.get, {});
-  const streak = useQuery(api.streak.current, {});
+  const streak = useQuery(api.streak.current, { today: todayKey() });
   const burned = useQuery(api.exerciseLogs.dailyCaloriesBurned, { date });
 
   const calorieGoal = profile?.calorieGoal ?? 2000;
@@ -74,10 +74,6 @@ export default function HomeScreen() {
         <ActivityIndicator />
       </SafeAreaView>
     );
-  }
-
-  if (profile === null || !profile.onboardingCompleted) {
-    return <Redirect href="/onboarding" />;
   }
 
   return (

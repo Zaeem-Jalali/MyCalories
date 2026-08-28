@@ -27,7 +27,7 @@ function round1(value: number): number {
 export default function ProgressScreen() {
   const weightLogs = useQuery(api.weightLogs.list, {});
   const profile = useQuery(api.profile.get, {});
-  const streak = useQuery(api.streak.current, {});
+  const streak = useQuery(api.streak.current, { today: todayKey() });
   const logWeight = useMutation(api.weightLogs.logWeight);
 
   const [unit, setUnit] = useState<"lbs" | "kg">("lbs");

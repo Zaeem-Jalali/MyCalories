@@ -20,6 +20,7 @@ import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
 import { BarcodeTab } from "../components/BarcodeTab";
 import { todayKey } from "../lib/dateKey";
+import { Authenticated } from "convex/react";
 
 type Mode = "photo" | "barcode" | "search" | "saved" | "manual";
 
@@ -31,7 +32,7 @@ const MODES: { value: Mode; label: string }[] = [
   { value: "manual", label: "Manual" },
 ];
 
-export default function LogFoodScreen() {
+function LogFoodScreenContent() {
   const router = useRouter();
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const date = dateParam ?? todayKey();
@@ -503,3 +504,12 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: colors.onAccent, fontWeight: "700" },
 });
+
+// Mounted only with a session: every query on this screen is account-scoped.
+export default function LogFoodScreen() {
+  return (
+    <Authenticated>
+      <LogFoodScreenContent />
+    </Authenticated>
+  );
+}

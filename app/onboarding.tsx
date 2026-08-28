@@ -1,7 +1,8 @@
-import { useMutation } from "convex/react";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { UnitToggle } from "../components/UnitToggle";
 import { todayKey } from "../lib/dateKey";
+import { Authenticated } from "convex/react";
 import {
   ActivityLevel,
   GoalDirection,
@@ -41,12 +43,20 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-export default function OnboardingScreen() {
+function OnboardingScreenContent() {
   const router = useRouter();
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const isEditing = edit === "1";
   const upsertProfile = useMutation(api.profile.upsert);
   const logWeight = useMutation(api.weightLogs.logWeight);
+  const profile = useQuery(api.profile.get, {});
+  // Only the edit flow needs the weight history, and a first-run user has no
+  // session-scoped data to read yet.
+  const weightLogs = useQuery(api.weightLogs.list, isEditing ? {} : "skip");
 
-  const [step, setStep] = useState(0);
+  // Starts on the first question when editing: the welcome step is for people
+  // seeing the app for the first time, not for changing an answer.
+  const [step, setStep] = useState(isEditing ? 1 : 0);
 
   const [firstName, setFirstName] = useState("");
   const [sex, setSex] = useState<Sex | null>(null);
@@ -67,6 +77,38 @@ export default function OnboardingScreen() {
     null,
   );
   const [rateLbsPerWeek, setRateLbsPerWeek] = useState<number>(1);
+
+  // Seeded once, the first time the saved answers arrive. Seeding on every
+  // change would fight the user's typing.
+  const seeded = useRef(false);
+  const [seededWeightLbs, setSeededWeightLbs] = useState<number | null>(null);
+  const [ready, setReady] = useState(!isEditing);
+  useEffect(() => {
+    if (!isEditing || seeded.current) return;
+    if (!profile || weightLogs === undefined) return;
+    seeded.current = true;
+
+    if (profile.name) setFirstName(profile.name);
+    if (profile.sex) setSex(profile.sex);
+    if (profile.age) setAge(String(profile.age));
+    if (profile.heightCm) {
+      setHeightUnit("cm");
+      setHeightCmInput(String(round1(profile.heightCm)));
+    }
+    if (profile.activityLevel) setActivityLevel(profile.activityLevel);
+    setGoalDirection(profile.goalDirection);
+    if (profile.rateLbsPerWeek) setRateLbsPerWeek(profile.rateLbsPerWeek);
+    setWeightUnit("lbs");
+    const latestWeight = weightLogs[weightLogs.length - 1]?.weightLbs;
+    if (latestWeight) {
+      setCurrentWeightInput(String(round1(latestWeight)));
+      setSeededWeightLbs(round1(latestWeight));
+    }
+    if (profile.weightGoalLbs) {
+      setGoalWeightInput(String(round1(profile.weightGoalLbs)));
+    }
+    setReady(true);
+  }, [isEditing, profile, weightLogs]);
 
   const steps = [
     "welcome",
@@ -172,6 +214,7 @@ export default function OnboardingScreen() {
         ...goals,
         goalDirection,
         weightGoalLbs: goalWeightLbs,
+        rateLbsPerWeek: goalDirection === "maintain" ? 0 : rateLbsPerWeek,
         safetyFloorOverride: false,
         name: firstName.trim(),
         sex,
@@ -180,11 +223,20 @@ export default function OnboardingScreen() {
         activityLevel,
         onboardingCompleted: true,
       });
-      await logWeight({
-        date: todayKey(),
-        weightLbs: currentWeightLbs,
-      });
-      router.replace("/");
+
+      // Editing an answer must not stamp an old measurement onto today. Only
+      // a weight the user actually changed (or a first-run entry) is logged.
+      const weightChanged =
+        seededWeightLbs === null || currentWeightLbs !== seededWeightLbs;
+      if (weightChanged) {
+        await logWeight({ date: todayKey(), weightLbs: currentWeightLbs });
+      }
+
+      if (isEditing && router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace(isEditing ? "/(tabs)/settings" : "/");
+      }
     } catch (error) {
       Alert.alert(
         "Couldn't save",
@@ -192,6 +244,16 @@ export default function OnboardingScreen() {
       );
     }
   };
+
+  // Nothing is editable until the saved answers have landed, otherwise the
+  // seeding effect would overwrite whatever was typed in the meantime.
+  if (!ready) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loading]}>
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
 
   if (currentStepKey === "welcome") {
     return (
@@ -510,6 +572,7 @@ function ReviewMacro({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  loading: { alignItems: "center", justifyContent: "center" },
   welcomeContent: {
     flex: 1,
     justifyContent: "center",
@@ -629,3 +692,12 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.4 },
   primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
 });
+
+// Reads account-scoped data when editing, so it never mounts without a session.
+export default function OnboardingScreen() {
+  return (
+    <Authenticated>
+      <OnboardingScreenContent />
+    </Authenticated>
+  );
+}

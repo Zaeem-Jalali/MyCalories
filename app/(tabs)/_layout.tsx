@@ -1,9 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Authenticated } from "convex/react";
 import { Tabs } from "expo-router";
 
 import { colors } from "../../constants/theme";
 
+// Every screen under here reads account-scoped data, so none of them mount
+// until there is a session. Without this the queries fire during sign-out and
+// throw "Not signed in" before the gate has finished redirecting.
 export default function TabsLayout() {
+  return (
+    <Authenticated>
+      <TabsNavigator />
+    </Authenticated>
+  );
+}
+
+function TabsNavigator() {
   return (
     <Tabs
       screenOptions={{

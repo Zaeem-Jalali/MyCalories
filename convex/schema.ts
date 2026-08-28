@@ -1,3 +1,4 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -13,8 +14,6 @@ export const ingredientValidator = v.object({
   fatG: v.number(),
 });
 
-// V1 is single-user/local, so there is no per-row userId yet.
-// Auth + multi-user scoping gets added when we wire up sign-in (Phase 1 follow-up).
 export const activityValidator = v.union(
   v.literal("walk"),
   v.literal("run"),
@@ -28,8 +27,18 @@ export const intensityValidator = v.union(
   v.literal("brisk"),
 );
 
+// Every user-data table is scoped by userId, and every query and mutation
+// rejects an unauthenticated call. The field is optional only because rows
+// written before auth existed have no owner: those are invisible to every
+// account until claimed (see convex/migrations.ts). New rows always set it.
+const userId = v.optional(v.id("users"));
+
 export default defineSchema({
+  ...authTables,
+
   profile: defineTable({
+    userId,
+
     calorieGoal: v.number(),
     proteinGoalG: v.number(),
     carbsGoalG: v.number(),
@@ -40,6 +49,9 @@ export default defineSchema({
       v.literal("bulk"),
     ),
     weightGoalLbs: v.optional(v.number()),
+    // Kept so re-opening onboarding to edit an answer recomputes the goals at
+    // the pace the user actually chose, instead of silently resetting it.
+    rateLbsPerWeek: v.optional(v.number()),
     safetyFloorOverride: v.boolean(),
 
     name: v.optional(v.string()),
@@ -59,9 +71,10 @@ export default defineSchema({
       ),
     ),
     onboardingCompleted: v.optional(v.boolean()),
-  }),
+  }).index("by_user", ["userId"]),
 
   foodLogs: defineTable({
+    userId,
     date: v.string(), // YYYY-MM-DD, lets us log for any past/future date
     name: v.string(),
     quantity: v.number(),
@@ -79,9 +92,12 @@ export default defineSchema({
     photoStorageId: v.optional(v.id("_storage")),
     savedMealId: v.optional(v.id("savedMeals")),
     ingredients: v.optional(v.array(ingredientValidator)),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_date", ["userId", "date"]),
 
   savedMeals: defineTable({
+    userId,
     name: v.string(),
     category: v.optional(v.string()),
     quantity: v.number(),
@@ -90,19 +106,28 @@ export default defineSchema({
     proteinG: v.number(),
     carbsG: v.number(),
     fatG: v.number(),
-  }).index("by_name", ["name"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_name", ["userId", "name"]),
 
   weightLogs: defineTable({
+    userId,
     date: v.string(), // YYYY-MM-DD
     weightLbs: v.number(),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_date", ["userId", "date"]),
 
   progressPhotos: defineTable({
+    userId,
     date: v.string(), // YYYY-MM-DD
     storageId: v.id("_storage"),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_date", ["userId", "date"]),
 
   exerciseLogs: defineTable({
+    userId,
     date: v.string(), // YYYY-MM-DD
     activity: activityValidator,
     // Named "pace" since the walking-only version; it's the shared intensity
@@ -110,15 +135,20 @@ export default defineSchema({
     pace: intensityValidator,
     durationMinutes: v.number(),
     caloriesBurned: v.number(),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_date", ["userId", "date"]),
 
   // One row per planned session, either entered by hand or parsed from a
   // photo of a written weekly schedule.
   exercisePlans: defineTable({
+    userId,
     dayOfWeek: v.number(), // 0 = Sunday, matching Date.getDay()
     activity: activityValidator,
     durationMinutes: v.number(),
     intensity: intensityValidator,
     notes: v.optional(v.string()),
-  }).index("by_day", ["dayOfWeek"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_day", ["userId", "dayOfWeek"]),
 });

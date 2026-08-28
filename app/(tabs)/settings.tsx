@@ -1,4 +1,6 @@
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -30,7 +32,10 @@ const REMINDER_TIMES = [
 ];
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const { signOut } = useAuthActions();
   const profile = useQuery(api.profile.get, {});
+  const account = useQuery(api.users.current, {});
   const upsertProfile = useMutation(api.profile.upsert);
 
   const [calorieGoal, setCalorieGoal] = useState("2000");
@@ -123,6 +128,26 @@ export default function SettingsScreen() {
     }
   };
 
+  const confirmSignOut = () => {
+    Alert.alert("Sign out?", "Your data stays on this account.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            Alert.alert(
+              "Couldn't sign out",
+              error instanceof Error ? error.message : "Unknown error",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSave = async () => {
     try {
       await upsertProfile({
@@ -146,6 +171,22 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Settings</Text>
+
+        <View style={styles.accountCard}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.accountEmail}>
+            {account?.email ?? "Signed in"}
+          </Text>
+          <TouchableOpacity
+            style={styles.accountAction}
+            onPress={() => router.push("/onboarding?edit=1")}
+          >
+            <Text style={styles.accountActionText}>Edit profile answers</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.accountAction} onPress={confirmSignOut}>
+            <Text style={styles.signOutText}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.sectionTitle}>Goal direction</Text>
         <View style={styles.directionRow}>
@@ -296,6 +337,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveButtonText: { color: colors.onAccent, fontWeight: "700" },
+  accountCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  accountEmail: { ...type.label, color: colors.textMuted },
+  accountAction: {
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  accountActionText: { color: colors.text, fontWeight: "600" },
+  signOutText: { color: colors.danger, fontWeight: "600" },
   reminderCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
