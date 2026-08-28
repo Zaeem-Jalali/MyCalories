@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { colors, radii, spacing, type } from "../constants/theme";
 
 function todayKey(): string {
@@ -22,7 +24,22 @@ export function ProgressPhotos() {
   const photos = useQuery(api.progressPhotos.list, {});
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const createPhoto = useMutation(api.progressPhotos.create);
+  const removePhoto = useMutation(api.progressPhotos.remove);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const confirmDelete = (id: Id<"progressPhotos">, date: string) => {
+    Alert.alert("Delete photo", `Delete the progress photo from ${date}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          setSelectedIds((current) => current.filter((x) => x !== id));
+          removePhoto({ id });
+        },
+      },
+    ]);
+  };
 
   const addPhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -101,21 +118,31 @@ export function ProgressPhotos() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.thumbRow}>
             {photos.map((photo) => (
-              <TouchableOpacity
-                key={photo._id}
-                onPress={() => toggleSelect(photo._id)}
-                style={[
-                  styles.thumbWrapper,
-                  selectedIds.includes(photo._id) && styles.thumbWrapperSelected,
-                ]}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: selectedIds.includes(photo._id) }}
-                accessibilityLabel={`Progress photo from ${photo.date}`}
-              >
-                {photo.url ? (
-                  <Image source={{ uri: photo.url }} style={styles.thumb} />
-                ) : null}
-              </TouchableOpacity>
+              <View key={photo._id} style={styles.thumbSlot}>
+                <TouchableOpacity
+                  onPress={() => toggleSelect(photo._id)}
+                  style={[
+                    styles.thumbWrapper,
+                    selectedIds.includes(photo._id) && styles.thumbWrapperSelected,
+                  ]}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selectedIds.includes(photo._id) }}
+                  accessibilityLabel={`Progress photo from ${photo.date}`}
+                >
+                  {photo.url ? (
+                    <Image source={{ uri: photo.url }} style={styles.thumb} />
+                  ) : null}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => confirmDelete(photo._id, photo.date)}
+                  style={styles.deleteButton}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete progress photo from ${photo.date}`}
+                >
+                  <Ionicons name="close-circle" size={20} color={colors.background} />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </ScrollView>
@@ -134,6 +161,7 @@ const styles = StyleSheet.create({
   addText: { ...type.bodyStrong, color: colors.accent },
   emptyText: { ...type.body, color: colors.textMuted },
   thumbRow: { flexDirection: "row", gap: spacing.sm },
+  thumbSlot: { width: 84, height: 84 },
   thumbWrapper: {
     width: 84,
     height: 84,
@@ -144,6 +172,13 @@ const styles = StyleSheet.create({
   },
   thumbWrapperSelected: { borderColor: colors.accent },
   thumb: { width: "100%", height: "100%" },
+  deleteButton: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: colors.danger,
+    borderRadius: radii.pill,
+  },
   compareCard: {
     flexDirection: "row",
     gap: spacing.sm,
