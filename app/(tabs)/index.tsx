@@ -66,8 +66,10 @@ export default function HomeScreen() {
   const logs = useQuery(api.foodLogs.listByDate, { date });
   const profile = useQuery(api.profile.get, {});
   const streak = useQuery(api.streak.current, {});
+  const burned = useQuery(api.exerciseLogs.dailyCaloriesBurned, { date });
 
   const calorieGoal = profile?.calorieGoal ?? 2000;
+  const adjustedGoal = calorieGoal + (burned ?? 0);
   const eaten = totals?.calories ?? 0;
   const today = todayKey();
   const week = currentWeekDates();
@@ -136,11 +138,23 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.calorieValue}>
               {Math.round(eaten)}
-              <Text style={styles.calorieGoal}>/{calorieGoal}</Text>
+              <Text style={styles.calorieGoal}>/{adjustedGoal}</Text>
             </Text>
-            <Text style={styles.calorieLabel}>Calories eaten</Text>
+            <Text style={styles.calorieLabel}>
+              {burned ? `Calories eaten · goal ${calorieGoal} + ${burned} exercise` : "Calories eaten"}
+            </Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.exerciseRow}
+          onPress={() => router.push({ pathname: "/exercise", params: { date } })}
+        >
+          <Ionicons name="walk-outline" size={18} color={colors.accent} />
+          <Text style={styles.exerciseText}>
+            {burned ? `${burned} cal from walking today` : "Log a walk"}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.macroRow}>
           <MacroStat
@@ -237,6 +251,16 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   calorieLabel: { color: colors.textMuted, marginTop: 4 },
+  exerciseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  exerciseText: { color: colors.text, fontWeight: "500" },
   macroRow: { flexDirection: "row", gap: 12 },
   macroCard: {
     flex: 1,

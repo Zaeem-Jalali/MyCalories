@@ -75,4 +75,12 @@ export default defineSchema({
     date: v.string(), // YYYY-MM-DD
     storageId: v.id("_storage"),
   }).index("by_date", ["date"]),
+
+  exerciseLogs: defineTable({
+    date: v.string(), // YYYY-MM-DD
+    activity: v.literal("walk"),
+    pace: v.union(v.literal("slow"), v.literal("normal"), v.literal("brisk")),
+    durationMinutes: v.number(),
+    caloriesBurned: v.number(),
+  }).index("by_date", ["date"]),
 });
