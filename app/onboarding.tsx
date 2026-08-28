@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors } from "../constants/theme";
+import { colors, radii, spacing, type } from "../constants/theme";
 import {
   ActivityLevel,
   GoalDirection,
@@ -23,10 +23,10 @@ import {
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
   { value: "sedentary", label: "Sedentary", hint: "Little to no exercise" },
-  { value: "light", label: "Lightly active", hint: "1-3 workouts/week" },
-  { value: "moderate", label: "Moderately active", hint: "3-5 workouts/week" },
-  { value: "active", label: "Active", hint: "6-7 workouts/week" },
-  { value: "very_active", label: "Very active", hint: "Physical job or 2x/day training" },
+  { value: "light", label: "Lightly active", hint: "1-3 workouts a week" },
+  { value: "moderate", label: "Moderately active", hint: "3-5 workouts a week" },
+  { value: "active", label: "Active", hint: "6-7 workouts a week" },
+  { value: "very_active", label: "Very active", hint: "Physical job or training twice a day" },
 ];
 
 const RATE_OPTIONS = [0.5, 1, 1.5, 2];
@@ -42,6 +42,7 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(0);
 
+  const [firstName, setFirstName] = useState("");
   const [sex, setSex] = useState<Sex | null>(null);
   const [age, setAge] = useState("");
   const [heightCm, setHeightCm] = useState("");
@@ -56,6 +57,8 @@ export default function OnboardingScreen() {
   const [rateLbsPerWeek, setRateLbsPerWeek] = useState<number>(1);
 
   const steps = [
+    "welcome",
+    "name",
     "sex",
     "age",
     "height",
@@ -72,6 +75,7 @@ export default function OnboardingScreen() {
     ? [...steps]
     : steps.filter((s) => s !== "rate");
   const visibleIndex = visibleSteps.indexOf(currentStepKey);
+  const questionSteps = visibleSteps.filter((s) => s !== "welcome" && s !== "review");
 
   const goNext = () => {
     const nextIndex = steps.indexOf(currentStepKey) + 1;
@@ -94,6 +98,8 @@ export default function OnboardingScreen() {
 
   const canProceed = (() => {
     switch (currentStepKey) {
+      case "name":
+        return firstName.trim().length > 0;
       case "sex":
         return sex !== null;
       case "age":
@@ -106,8 +112,6 @@ export default function OnboardingScreen() {
         return activityLevel !== null;
       case "direction":
         return goalDirection !== null;
-      case "rate":
-        return true;
       default:
         return true;
     }
@@ -134,6 +138,7 @@ export default function OnboardingScreen() {
         goalDirection,
         weightGoalLbs: goalWeightLbs ? Number(goalWeightLbs) : undefined,
         safetyFloorOverride: false,
+        name: firstName.trim(),
         sex,
         age: Number(age),
         heightCm: Number(heightCm),
@@ -153,23 +158,67 @@ export default function OnboardingScreen() {
     }
   };
 
+  if (currentStepKey === "welcome") {
+    return (
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <View style={styles.welcomeContent}>
+          <Text style={styles.welcomeTitle}>CalorieAI</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Snap a photo, log it in seconds, and see exactly where your day
+            stands.
+          </Text>
+        </View>
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.primaryButton} onPress={goNext}>
+            <Text style={styles.primaryButtonText}>Set up my goals</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <View style={styles.progressRow}>
-        {visibleSteps.map((s, i) => (
+      <View style={styles.progressHeader}>
+        <TouchableOpacity onPress={goBack} hitSlop={12}>
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.progressTrack}>
           <View
-            key={s}
             style={[
-              styles.progressDot,
-              i <= visibleIndex && styles.progressDotActive,
+              styles.progressFill,
+              {
+                width: `${
+                  currentStepKey === "review"
+                    ? 100
+                    : ((questionSteps.indexOf(currentStepKey) + 1) /
+                        questionSteps.length) *
+                      100
+                }%`,
+              },
             ]}
           />
-        ))}
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {currentStepKey === "name" && (
+          <Step title="What should we call you?">
+            <TextInput
+              style={styles.bigInput}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="First name"
+              autoFocus
+            />
+          </Step>
+        )}
+
         {currentStepKey === "sex" && (
-          <Step title="What's your sex?" subtitle="Used to estimate your calorie needs.">
+          <Step
+            title="What's your sex?"
+            subtitle="This affects the calorie formula, so we need it to get your goal right."
+          >
             <View style={styles.chipRow}>
               {(["female", "male"] as Sex[]).map((option) => (
                 <Chip
@@ -232,7 +281,7 @@ export default function OnboardingScreen() {
 
         {currentStepKey === "activity" && (
           <Step title="How active are you day to day?">
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: spacing.sm }}>
               {ACTIVITY_OPTIONS.map((option) => (
                 <TouchableOpacity
                   key={option.value}
@@ -242,24 +291,8 @@ export default function OnboardingScreen() {
                   ]}
                   onPress={() => setActivityLevel(option.value)}
                 >
-                  <Text
-                    style={[
-                      styles.optionLabel,
-                      activityLevel === option.value &&
-                        styles.optionLabelSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.optionHint,
-                      activityLevel === option.value &&
-                        styles.optionLabelSelected,
-                    ]}
-                  >
-                    {option.hint}
-                  </Text>
+                  <Text style={styles.optionLabel}>{option.label}</Text>
+                  <Text style={styles.optionHint}>{option.hint}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -308,17 +341,17 @@ export default function OnboardingScreen() {
         )}
 
         {currentStepKey === "review" && goals && (
-          <Step title="Your daily goals" subtitle="You can fine-tune these anytime in Settings.">
+          <Step
+            title={`You're all set, ${firstName.trim() || "there"}`}
+            subtitle="These are your daily targets — fine-tune them anytime in Settings."
+          >
             <View style={styles.reviewCard}>
-              <Text style={styles.reviewValue}>{goals.calorieGoal} cal</Text>
+              <Text style={styles.reviewValue}>{goals.calorieGoal}</Text>
+              <Text style={styles.reviewUnit}>calories a day</Text>
               <View style={styles.reviewMacroRow}>
-                <Text style={styles.reviewMacro}>
-                  {goals.proteinGoalG}g protein
-                </Text>
-                <Text style={styles.reviewMacro}>
-                  {goals.carbsGoalG}g carbs
-                </Text>
-                <Text style={styles.reviewMacro}>{goals.fatGoalG}g fat</Text>
+                <ReviewMacro label="Protein" value={goals.proteinGoalG} color={colors.protein} />
+                <ReviewMacro label="Carbs" value={goals.carbsGoalG} color={colors.carbs} />
+                <ReviewMacro label="Fat" value={goals.fatGoalG} color={colors.fat} />
               </View>
             </View>
           </Step>
@@ -326,20 +359,13 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        {step > 0 ? (
-          <TouchableOpacity style={styles.secondaryButton} onPress={goBack}>
-            <Text style={styles.secondaryButtonText}>Back</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ flex: 1 }} />
-        )}
         <TouchableOpacity
           style={[styles.primaryButton, !canProceed && styles.buttonDisabled]}
           disabled={!canProceed}
           onPress={currentStepKey === "review" ? finish : goNext}
         >
           <Text style={styles.primaryButtonText}>
-            {currentStepKey === "review" ? "Get started" : "Next"}
+            {currentStepKey === "review" ? "Start tracking" : "Next"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -357,7 +383,7 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: spacing.lg }}>
       <View>
         <Text style={styles.stepTitle}>{title}</Text>
         {subtitle ? <Text style={styles.stepSubtitle}>{subtitle}</Text> : null}
@@ -388,94 +414,141 @@ function Chip({
   );
 }
 
+function ReviewMacro({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <View style={styles.reviewMacro}>
+      <View style={[styles.reviewMacroDot, { backgroundColor: color }]} />
+      <Text style={styles.reviewMacroValue}>{value}g</Text>
+      <Text style={styles.reviewMacroLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  progressRow: {
-    flexDirection: "row",
+  welcomeContent: {
+    flex: 1,
     justifyContent: "center",
-    gap: 8,
-    paddingTop: 12,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  welcomeTitle: { ...type.display, fontSize: 40, color: colors.text },
+  welcomeSubtitle: { ...type.body, color: colors.textMuted, maxWidth: 320 },
+  progressHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  backArrow: { fontSize: 20, color: colors.text },
+  progressTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: radii.pill,
     backgroundColor: colors.border,
+    overflow: "hidden",
   },
-  progressDotActive: { backgroundColor: colors.text },
-  content: { padding: 24, flexGrow: 1, justifyContent: "center" },
-  stepTitle: { fontSize: 24, fontWeight: "700", color: colors.text },
-  stepSubtitle: { color: colors.textMuted, marginTop: 6 },
-  chipRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  progressFill: {
+    height: "100%",
+    borderRadius: radii.pill,
+    backgroundColor: colors.accent,
+  },
+  content: {
+    padding: spacing.lg,
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  stepTitle: { ...type.display, color: colors.text },
+  stepSubtitle: { ...type.body, color: colors.textMuted, marginTop: spacing.sm },
+  chipRow: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
   chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  chipSelected: { backgroundColor: colors.text },
-  chipText: { color: colors.text, fontWeight: "600" },
-  chipTextSelected: { color: colors.background },
+  chipSelected: {
+    backgroundColor: colors.accentTint,
+    borderColor: colors.accent,
+  },
+  chipText: { ...type.bodyStrong, color: colors.text },
+  chipTextSelected: { color: colors.accent },
   bigInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 20,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: 22,
+    fontWeight: "600",
     color: colors.text,
+    backgroundColor: colors.surface,
   },
-  fieldLabel: { color: colors.textMuted, marginTop: 8, marginBottom: 6 },
+  fieldLabel: {
+    ...type.label,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
     fontSize: 16,
     color: colors.text,
+    backgroundColor: colors.surface,
   },
   optionRow: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
   },
-  optionRowSelected: { backgroundColor: colors.text, borderColor: colors.text },
-  optionLabel: { fontWeight: "600", color: colors.text },
-  optionLabelSelected: { color: colors.background },
-  optionHint: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  optionRowSelected: {
+    backgroundColor: colors.accentTint,
+    borderColor: colors.accent,
+  },
+  optionLabel: { ...type.bodyStrong, color: colors.text },
+  optionHint: { ...type.label, color: colors.textMuted, marginTop: 2 },
   reviewCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
-  reviewValue: { fontSize: 32, fontWeight: "800", color: colors.text },
-  reviewMacroRow: { flexDirection: "row", gap: 16 },
-  reviewMacro: { color: colors.textMuted, fontWeight: "500" },
-  footer: {
+  reviewValue: { fontSize: 52, fontWeight: "800", color: colors.text },
+  reviewUnit: { ...type.body, color: colors.textMuted, marginTop: -8 },
+  reviewMacroRow: {
     flexDirection: "row",
-    padding: 20,
-    gap: 12,
+    gap: spacing.lg,
+    marginTop: spacing.sm,
   },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: { color: colors.text, fontWeight: "600" },
+  reviewMacro: { alignItems: "center", gap: 4 },
+  reviewMacroDot: { width: 8, height: 8, borderRadius: 4 },
+  reviewMacroValue: { ...type.bodyStrong, color: colors.text },
+  reviewMacroLabel: { ...type.label, color: colors.textMuted },
+  footer: { padding: spacing.lg },
   primaryButton: {
-    flex: 1,
-    backgroundColor: colors.text,
-    borderRadius: 14,
-    paddingVertical: 14,
+    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
     alignItems: "center",
   },
   buttonDisabled: { opacity: 0.4 },
-  primaryButtonText: { color: colors.background, fontWeight: "700" },
+  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
 });

@@ -17,6 +17,8 @@ export default defineSchema({
     weightGoalLbs: v.optional(v.number()),
     safetyFloorOverride: v.boolean(),
 
+    name: v.optional(v.string()),
+
     // Collected during onboarding, used to compute the goals above.
     // Optional so the settings-only path (no onboarding) still works.
     sex: v.optional(v.union(v.literal("male"), v.literal("female"))),

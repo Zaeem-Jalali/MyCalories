@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
@@ -87,10 +88,13 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>CalorieAI</Text>
+          <Text style={styles.title}>
+            {profile?.name ? `Hi, ${profile.name}` : "CalorieAI"}
+          </Text>
           {streak !== undefined && streak > 0 ? (
             <View style={styles.streakPill}>
-              <Text style={styles.streakText}>🔥 {streak}</Text>
+              <Ionicons name="flame" size={14} color={colors.accent} />
+              <Text style={styles.streakText}>{streak}</Text>
             </View>
           ) : null}
         </View>
@@ -197,12 +201,15 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: "700", color: colors.text },
   streakPill: {
-    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.accentTint,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
-  streakText: { fontWeight: "600", color: colors.text },
+  streakText: { fontWeight: "600", color: colors.accent },
   dayStrip: { flexDirection: "row", justifyContent: "space-between" },
   dayPill: {
     alignItems: "center",

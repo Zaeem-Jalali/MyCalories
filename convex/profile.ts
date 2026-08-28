@@ -26,6 +26,7 @@ export const upsert = mutation({
     ),
     weightGoalLbs: v.optional(v.number()),
     safetyFloorOverride: v.boolean(),
+    name: v.optional(v.string()),
     sex: v.optional(v.union(v.literal("male"), v.literal("female"))),
     age: v.optional(v.number()),
     heightCm: v.optional(v.number()),
