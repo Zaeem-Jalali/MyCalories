@@ -36,6 +36,13 @@
         {
           "cameraPermission": "CalorieAI needs camera access to scan barcodes."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#A15C00"
+        }
       ]
     ]
   }

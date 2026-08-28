@@ -2,8 +2,10 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,9 +14,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { colors } from "../../constants/theme";
+import { colors, radii, spacing, type } from "../../constants/theme";
+import {
+  cancelDailyReminder,
+  getDailyReminderTime,
+  setDailyReminder,
+} from "../../lib/notifications";
 
 const DIRECTIONS = ["cut", "maintain", "bulk"] as const;
+const REMINDER_TIMES = [
+  { hour: 8, label: "8 AM" },
+  { hour: 12, label: "12 PM" },
+  { hour: 18, label: "6 PM" },
+  { hour: 20, label: "8 PM" },
+];
 
 export default function SettingsScreen() {
   const profile = useQuery(api.profile.get, {});
@@ -27,6 +40,9 @@ export default function SettingsScreen() {
   const [goalDirection, setGoalDirection] =
     useState<(typeof DIRECTIONS)[number]>("maintain");
 
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderHour, setReminderHour] = useState(19);
+
   useEffect(() => {
     if (!profile) return;
     setCalorieGoal(String(profile.calorieGoal));
@@ -35,6 +51,43 @@ export default function SettingsScreen() {
     setFatGoalG(String(profile.fatGoalG));
     setGoalDirection(profile.goalDirection);
   }, [profile]);
+
+  useEffect(() => {
+    getDailyReminderTime().then((time) => {
+      if (time) {
+        setReminderEnabled(true);
+        setReminderHour(time.hour);
+      }
+    });
+  }, []);
+
+  const toggleReminder = async (enabled: boolean) => {
+    if (enabled) {
+      if (Platform.OS === "web") {
+        Alert.alert(
+          "Not available",
+          "Reminders need a phone — this isn't supported in the web preview.",
+        );
+        return;
+      }
+      const granted = await setDailyReminder(reminderHour, 0);
+      if (!granted) {
+        Alert.alert("Permission needed", "Allow notifications to set a reminder.");
+        return;
+      }
+      setReminderEnabled(true);
+    } else {
+      await cancelDailyReminder();
+      setReminderEnabled(false);
+    }
+  };
+
+  const changeReminderTime = async (hour: number) => {
+    setReminderHour(hour);
+    if (reminderEnabled) {
+      await setDailyReminder(hour, 0);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -104,6 +157,47 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderRow}>
+            <Text style={styles.sectionTitle}>Daily reminder</Text>
+            <Switch
+              value={reminderEnabled}
+              onValueChange={toggleReminder}
+              trackColor={{ false: colors.border, true: colors.accentTint }}
+              thumbColor={reminderEnabled ? colors.accent : undefined}
+            />
+          </View>
+          {reminderEnabled ? (
+            <View style={styles.reminderTimeRow}>
+              {REMINDER_TIMES.map((option) => (
+                <TouchableOpacity
+                  key={option.hour}
+                  onPress={() => changeReminderTime(option.hour)}
+                  style={[
+                    styles.directionChip,
+                    reminderHour === option.hour && styles.directionChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.directionChipText,
+                      reminderHour === option.hour &&
+                        styles.directionChipTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.reminderHint}>
+              One reminder a day, nothing else — no streak-shaming, no social
+              noise.
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -168,4 +262,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveButtonText: { color: colors.onAccent, fontWeight: "700" },
+  reminderCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  reminderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reminderTimeRow: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
+  reminderHint: { ...type.label, color: colors.textMuted },
 });
