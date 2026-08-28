@@ -26,6 +26,19 @@ export const upsert = mutation({
     ),
     weightGoalLbs: v.optional(v.number()),
     safetyFloorOverride: v.boolean(),
+    sex: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    age: v.optional(v.number()),
+    heightCm: v.optional(v.number()),
+    activityLevel: v.optional(
+      v.union(
+        v.literal("sedentary"),
+        v.literal("light"),
+        v.literal("moderate"),
+        v.literal("active"),
+        v.literal("very_active"),
+      ),
+    ),
+    onboardingCompleted: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!args.safetyFloorOverride && args.calorieGoal < MIN_SAFE_CALORIES) {

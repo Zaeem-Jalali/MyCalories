@@ -16,6 +16,22 @@ export default defineSchema({
     ),
     weightGoalLbs: v.optional(v.number()),
     safetyFloorOverride: v.boolean(),
+
+    // Collected during onboarding, used to compute the goals above.
+    // Optional so the settings-only path (no onboarding) still works.
+    sex: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    age: v.optional(v.number()),
+    heightCm: v.optional(v.number()),
+    activityLevel: v.optional(
+      v.union(
+        v.literal("sedentary"),
+        v.literal("light"),
+        v.literal("moderate"),
+        v.literal("active"),
+        v.literal("very_active"),
+      ),
+    ),
+    onboardingCompleted: v.optional(v.boolean()),
   }),
 
   foodLogs: defineTable({

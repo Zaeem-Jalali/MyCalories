@@ -1,7 +1,8 @@
 import { useQuery } from "convex/react";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -69,6 +70,18 @@ export default function HomeScreen() {
   const eaten = totals?.calories ?? 0;
   const today = todayKey();
   const week = currentWeekDates();
+
+  if (profile === undefined) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+
+  if (profile === null || !profile.onboardingCompleted) {
+    return <Redirect href="/onboarding" />;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -175,6 +188,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  centered: { alignItems: "center", justifyContent: "center" },
   content: { padding: 20, gap: 16, paddingBottom: 100 },
   headerRow: {
     flexDirection: "row",

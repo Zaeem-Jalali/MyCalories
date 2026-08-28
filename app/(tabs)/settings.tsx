@@ -46,6 +46,7 @@ export default function SettingsScreen() {
         goalDirection,
         safetyFloorOverride: false,
       });
+      Alert.alert("Saved", "Your goals have been updated.");
     } catch (error) {
       Alert.alert(
         "Couldn't save",
