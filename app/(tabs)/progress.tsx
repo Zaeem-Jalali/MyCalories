@@ -1,4 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -25,6 +27,7 @@ function round1(value: number): number {
 }
 
 export default function ProgressScreen() {
+  const router = useRouter();
   const weightLogs = useQuery(api.weightLogs.list, {});
   const profile = useQuery(api.profile.get, {});
   const streak = useQuery(api.streak.current, { today: todayKey() });
@@ -53,6 +56,14 @@ export default function ProgressScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Progress</Text>
+
+        <TouchableOpacity
+          style={styles.reportRow}
+          onPress={() => router.push("/monthlyReport")}
+        >
+          <Text style={styles.reportText}>Monthly report</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
 
         <View style={styles.row}>
           <View style={styles.card}>
@@ -149,5 +160,15 @@ const styles = StyleSheet.create({
   },
   logButtonText: { ...type.bodyStrong, color: colors.onAccent },
   sectionTitle: { ...type.title, color: colors.text, marginTop: spacing.xs },
+  reportRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm + 4,
+    paddingHorizontal: spacing.md,
+  },
+  reportText: { ...type.bodyStrong, color: colors.text },
   emptyText: { color: colors.textMuted },
 });

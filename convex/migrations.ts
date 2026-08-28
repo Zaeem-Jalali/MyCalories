@@ -35,10 +35,18 @@ export const countUnclaimed = internalQuery({
 });
 
 // The inverse, for undoing a claim made against the wrong account. Rows go
-// back to having no owner rather than being deleted.
+// back to having no owner rather than being deleted, and only rows that
+// predate the account are touched: anything the account logged itself is
+// genuinely its own and must not be orphaned.
 export const releaseClaimed = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("No such user");
+    }
+    const accountCreatedAt = user._creationTime;
+
     let released = 0;
     for (const table of LEGACY_TABLES) {
       const rows = await ctx.db
@@ -46,6 +54,7 @@ export const releaseClaimed = internalMutation({
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
       for (const row of rows) {
+        if (row._creationTime >= accountCreatedAt) continue;
         await ctx.db.patch(row._id, { userId: undefined });
         released += 1;
       }

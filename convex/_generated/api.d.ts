@@ -15,6 +15,7 @@ import type * as files from "../files.js";
 import type * as foodLogs from "../foodLogs.js";
 import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
+import type * as monthlyReport from "../monthlyReport.js";
 import type * as profile from "../profile.js";
 import type * as progressPhotos from "../progressPhotos.js";
 import type * as savedMeals from "../savedMeals.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   foodLogs: typeof foodLogs;
   http: typeof http;
   migrations: typeof migrations;
+  monthlyReport: typeof monthlyReport;
   profile: typeof profile;
   progressPhotos: typeof progressPhotos;
   savedMeals: typeof savedMeals;

@@ -6,6 +6,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 - **Dates.** Every date is a `YYYY-MM-DD` calendar day in the user's own timezone. Always build and parse keys with `lib/dateKey.ts` (`toDateKey`, `todayKey`, `dateFromKey`). Never use `toISOString().slice(0, 10)`, it shifts the day for anyone east of UTC.
 - **Auth and scoping.** Every user-data table carries `userId` and is read through a `by_user*` index. Every query and mutation that touches user data starts with `requireUserId(ctx)` from `convex/users.ts`, which throws when there is no session. `profile.get` and `users.current` are the only reads allowed to answer while signed out, because the root layout's gate needs them. Rows written before accounts existed have no `userId` and are invisible to every account. `convex/migrations.ts` can hand them to one account, and is internal-only (CLI) on purpose: as public mutations, any account could have claimed that history as its own.
+- **The monthly review.** Gemini is never given a figure it could restate wrongly. `convex/monthlyReport.ts` sends the shape of the month in words (trend, consistency, food names) and refuses a review containing digits. Every number on screen comes from the `summary` query.
 - **Photo meals.** A photo-logged meal is one `foodLogs` row with the identified items in its `ingredients` array, not one row per ingredient. The breakdown is shown in `app/mealDetail.tsx`.
 
 <!-- convex-ai-start -->

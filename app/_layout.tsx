@@ -73,6 +73,7 @@ function AuthGate() {
         <Stack.Screen name="log" options={{ presentation: "modal" }} />
         <Stack.Screen name="exercise" options={{ presentation: "modal" }} />
         <Stack.Screen name="mealDetail" />
+        <Stack.Screen name="monthlyReport" />
       </Stack>
       {isLoading || profileLoading ? (
         <View style={styles.loadingOverlay}>
