@@ -2,6 +2,12 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Shipping to the phone
+
+- **JS-only change:** `eas update --branch preview` pushes it over the air to the installed app. No reinstall. The app picks it up on the next cold start.
+- **Native change** (a new `expo-*` or `react-native-*` package, anything touching `app.json` plugins or permissions): needs `eas build`. `runtimeVersion` uses the `fingerprint` policy, so the fingerprint changes automatically and an over-the-air update can never land on a build that lacks the native module. Check with `eas fingerprint:generate --platform android`; if it differs from the installed build's, rebuild.
+- **The dev deployment is shared with whatever is already installed.** Changing a Convex function signature or adding an auth requirement breaks every installed build immediately, before any rebuild. Ship the app update alongside a breaking backend change, or the phone stops working while the code looks fine.
+
 # Conventions
 
 - **UI.** `constants/theme.ts` owns every colour, radius, spacing step, type role and duration. Never write a raw pixel value into a stylesheet, and never introduce a colour outside the tokens. Shared controls live in `components/ui/`: `Button` (primary/secondary, with busy and disabled states), `Chip` (every selectable option in the app), `EmptyState`, `ProgressTrack`, `PressableScale` (press feedback on anything tappable) and `motion.tsx` (`FadeInUp`, `useBumpOnChange`, `useReducedMotion`). Use them rather than rebuilding a `TouchableOpacity` with local styles.

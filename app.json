@@ -22,7 +22,10 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA"
-      ]
+      ],
+      "runtimeVersion": {
+        "policy": "fingerprint"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -57,6 +60,9 @@
         "projectId": "533c3fd9-a778-4cf5-af2b-27dae4235d25"
       }
     },
-    "owner": "zaeem-jalali"
+    "owner": "zaeem-jalali",
+    "updates": {
+      "url": "https://u.expo.dev/533c3fd9-a778-4cf5-af2b-27dae4235d25"
+    }
   }
 }
