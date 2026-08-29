@@ -17,11 +17,31 @@ export async function getDailyReminderTime(): Promise<{
   minute: number;
 } | null> {
   if (!SUPPORTED) return null;
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  const reminder = scheduled.find((n) => n.identifier === REMINDER_IDENTIFIER);
-  const trigger = reminder?.trigger as { hour?: number; minute?: number } | null;
-  if (!reminder || trigger?.hour === undefined) return null;
-  return { hour: trigger.hour, minute: trigger.minute ?? 0 };
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const reminder = scheduled.find(
+      (n) => n.identifier === REMINDER_IDENTIFIER,
+    );
+    // A DAILY trigger reads back as `{ hour, minute }` on Android but as an
+    // iOS CalendarNotificationTrigger `{ dateComponents: { hour, minute } }`,
+    // so check both shapes.
+    const trigger = reminder?.trigger as {
+      hour?: number;
+      minute?: number;
+      dateComponents?: { hour?: number; minute?: number };
+    } | null;
+    const hour = trigger?.hour ?? trigger?.dateComponents?.hour;
+    const minute = trigger?.minute ?? trigger?.dateComponents?.minute ?? 0;
+    if (!reminder || hour === undefined) return null;
+    return { hour, minute };
+  } catch (error) {
+    // Reading the schedule can throw before notification permission has ever
+    // been requested; treat that as "no reminder set" rather than crashing
+    // the settings screen on mount. Logged so a genuine native failure is
+    // still visible rather than silently read as "no reminder".
+    console.warn("Could not read the scheduled reminder", error);
+    return null;
+  }
 }
 
 export async function setDailyReminder(
@@ -49,11 +69,13 @@ export async function setDailyReminder(
       title: "Log today's food",
       body: "A quick photo or search keeps your day accurate.",
     },
+    // DAILY is the cross-platform "every day at this time" trigger. A CALENDAR
+    // trigger throws "Trigger of type: calendar is not supported on Android"
+    // outright, so scheduling never even starts there.
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      repeats: true,
       ...(Platform.OS === "android" ? { channelId: REMINDER_CHANNEL } : {}),
     },
   });
