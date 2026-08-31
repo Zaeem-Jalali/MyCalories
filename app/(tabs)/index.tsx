@@ -204,6 +204,7 @@ export default function HomeScreen() {
             return (
               <PressableScale
                 key={key}
+                flex={1}
                 scaleTo={0.94}
                 style={[styles.dayPill, selected && styles.dayPillSelected]}
                 onPress={() => setDate(key)}
@@ -465,12 +466,19 @@ const styles = StyleSheet.create({
   },
   todayButtonText: { ...type.label, color: colors.accent, fontWeight: "600" },
 
-  dayStrip: { flexDirection: "row", gap: 4 },
+  // Pulled wider than the page inset so seven tiles fill the row instead of
+  // sitting as a narrow band in the middle.
+  dayStrip: {
+    flexDirection: "row",
+    gap: 5,
+    // Pulled out past the page inset so seven tiles span the row instead of
+    // sitting as a narrow band.
+    marginHorizontal: -spacing.md,
+  },
   dayPill: {
-    flex: 1,
     alignItems: "center",
     gap: 3,
-    minHeight: 54,
+    minHeight: 56,
     paddingVertical: spacing.sm,
     justifyContent: "center",
     borderRadius: radii.sm,
