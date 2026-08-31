@@ -26,6 +26,11 @@ import {
   getDailyReminderTime,
   setDailyReminder,
 } from "../../lib/notifications";
+import { computeGoals } from "../../lib/goalCalculator";
+
+// A cut or bulk with no saved pace defaults here, matching onboarding's
+// starting pick. The full pace control lives in "Edit profile answers".
+const DEFAULT_RATE_LBS_PER_WEEK = 1;
 
 const DIRECTIONS = ["cut", "maintain", "bulk"] as const;
 const DIRECTION_LABELS: Record<(typeof DIRECTIONS)[number], string> = {
@@ -45,6 +50,7 @@ export default function SettingsScreen() {
   const { signOut } = useAuthActions();
   const profile = useQuery(api.profile.get, {});
   const account = useQuery(api.users.current, {});
+  const weightLogs = useQuery(api.weightLogs.list, {});
   const upsertProfile = useMutation(api.profile.upsert);
 
   const [calorieGoal, setCalorieGoal] = useState("2000");
@@ -53,6 +59,43 @@ export default function SettingsScreen() {
   const [fatGoalG, setFatGoalG] = useState("70");
   const [goalDirection, setGoalDirection] =
     useState<(typeof DIRECTIONS)[number]>("maintain");
+
+  const latestWeightLbs =
+    weightLogs && weightLogs.length > 0
+      ? weightLogs[weightLogs.length - 1].weightLbs
+      : undefined;
+
+  const rate = profile?.rateLbsPerWeek || DEFAULT_RATE_LBS_PER_WEEK;
+
+  // Switching cut / maintain / bulk repoints the daily calorie and macro
+  // targets, so the numbers always match the direction instead of going stale.
+  // Needs a complete profile (sex, age, height, activity, a logged weight); an
+  // account that only ever used Settings keeps manual entry.
+  const pickDirection = (direction: (typeof DIRECTIONS)[number]) => {
+    setGoalDirection(direction);
+    if (
+      !profile?.sex ||
+      !profile?.age ||
+      !profile?.heightCm ||
+      !profile?.activityLevel ||
+      latestWeightLbs === undefined
+    ) {
+      return;
+    }
+    const goals = computeGoals({
+      sex: profile.sex,
+      age: profile.age,
+      heightCm: profile.heightCm,
+      currentWeightLbs: latestWeightLbs,
+      activityLevel: profile.activityLevel,
+      goalDirection: direction,
+      rateLbsPerWeek: direction === "maintain" ? 0 : rate,
+    });
+    setCalorieGoal(String(goals.calorieGoal));
+    setProteinGoalG(String(goals.proteinGoalG));
+    setCarbsGoalG(String(goals.carbsGoalG));
+    setFatGoalG(String(goals.fatGoalG));
+  };
 
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderHour, setReminderHour] = useState(19);
@@ -165,6 +208,9 @@ export default function SettingsScreen() {
         carbsGoalG: Number(carbsGoalG),
         fatGoalG: Number(fatGoalG),
         goalDirection,
+        // Persist the pace the recompute assumed, so re-opening onboarding or
+        // this screen stays consistent with the numbers just saved.
+        rateLbsPerWeek: goalDirection === "maintain" ? 0 : rate,
         safetyFloorOverride: false,
       });
       Alert.alert("Saved", "Your goals have been updated.");
@@ -220,7 +266,7 @@ export default function SettingsScreen() {
               key={direction}
               label={DIRECTION_LABELS[direction]}
               selected={goalDirection === direction}
-              onPress={() => setGoalDirection(direction)}
+              onPress={() => pickDirection(direction)}
             />
           ))}
         </View>
