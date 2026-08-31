@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 
-import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import { colors, spacing, tabular, type } from "../constants/theme";
 import { dateFromKey } from "../lib/dateKey";
 
 const CHART_HEIGHT = 160;
@@ -62,15 +62,38 @@ export function WeightChart({
           />
           <Line
             x1={PADDING}
+            y1={CHART_HEIGHT / 2}
+            x2={width - PADDING}
+            y2={CHART_HEIGHT / 2}
+            stroke={colors.border}
+            strokeWidth={1}
+          />
+          <Line
+            x1={PADDING}
             y1={CHART_HEIGHT - PADDING}
             x2={width - PADDING}
             y2={CHART_HEIGHT - PADDING}
             stroke={colors.border}
             strokeWidth={1}
           />
-          <Path d={linePath} stroke={colors.accent} strokeWidth={2} fill="none" />
+          <Path
+            d={linePath}
+            stroke={colors.accent}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            fill="none"
+          />
           {points.map((p, i) => (
-            <Circle key={i} cx={p.x} cy={p.y} r={3} fill={colors.accent} />
+            <Circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={3.5}
+              fill={colors.background}
+              stroke={colors.accent}
+              strokeWidth={2}
+            />
           ))}
         </Svg>
       ) : null}
@@ -95,9 +118,7 @@ function axisLabel(key: string): string {
 const styles = StyleSheet.create({
   container: { paddingVertical: spacing.sm },
   empty: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+    padding: spacing.md,
     minHeight: CHART_HEIGHT,
     alignItems: "center",
     justifyContent: "center",

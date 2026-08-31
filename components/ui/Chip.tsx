@@ -11,6 +11,7 @@ export function Chip({
   selected,
   onPress,
   block = false,
+  size = "md",
 }: {
   label: string;
   selected: boolean;
@@ -18,6 +19,9 @@ export function Chip({
   // Full-width variant for options whose labels are long enough that a row of
   // pills would wrap badly.
   block?: boolean;
+  // "sm" is the tighter chip used where five options share one row (the log
+  // food modes); "md" is the default selectable option.
+  size?: "sm" | "md";
 }) {
   return (
     <PressableScale
@@ -28,11 +32,17 @@ export function Chip({
       accessibilityLabel={label}
       style={[
         styles.chip,
+        size === "sm" ? styles.sm : styles.mdSize,
         block ? styles.block : styles.inline,
         selected && styles.selected,
       ]}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>
+      <Text
+        style={[
+          size === "sm" ? styles.labelSm : styles.label,
+          selected && styles.labelSelected,
+        ]}
+      >
         {label}
       </Text>
     </PressableScale>
@@ -40,18 +50,22 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
+  // Selected is a solid amber fill with white text; unselected is a plain
+  // hairline pill on the background. No tint state, so "chosen" reads at a
+  // glance across a whole row.
   chip: {
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
     justifyContent: "center",
-    minHeight: 40,
   },
+  mdSize: { paddingHorizontal: spacing.md, minHeight: 40 },
+  sm: { paddingHorizontal: spacing.sm + 2, minHeight: 38 },
   inline: { alignSelf: "flex-start" },
   block: { alignSelf: "stretch", borderRadius: radii.md },
-  selected: { backgroundColor: colors.accentTint, borderColor: colors.accent },
-  label: { ...type.label, color: colors.textMuted },
-  labelSelected: { color: colors.accent, fontWeight: "600" },
+  selected: { backgroundColor: colors.accent, borderColor: colors.accent },
+  label: { ...type.label, color: colors.text },
+  labelSm: { fontSize: 12.5, fontWeight: "500", color: colors.text },
+  labelSelected: { color: colors.onAccent, fontWeight: "600" },
 });
