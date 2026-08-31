@@ -73,6 +73,7 @@ function LogFoodScreenContent() {
           <Chip
             key={m.value}
             label={m.label}
+            size="sm"
             selected={mode === m.value}
             onPress={() => setMode(m.value)}
           />

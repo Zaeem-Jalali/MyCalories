@@ -9,14 +9,22 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import {
+  card,
+  cardTight,
+  colors,
+  radii,
+  spacing,
+  tabular,
+  type,
+} from "../constants/theme";
 import { Button } from "./ui/Button";
+import { PressableScale } from "./ui/PressableScale";
 import type { IdentifiedIngredient } from "../convex/vision";
 
 type EditableIngredient = IdentifiedIngredient & { include: boolean };
@@ -30,6 +38,8 @@ function defaultMealName(items: { name: string }[]): string {
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
 }
+
+const round = (n: number) => Math.round(n);
 
 export function PhotoTab({
   date,
@@ -122,6 +132,26 @@ export function PhotoTab({
     }
   };
 
+  // The portion stepper is the primary way to correct an estimate: nudge the
+  // grams and every macro moves with it, in proportion, so the numbers stay
+  // consistent. The fields are still directly editable for a manual override.
+  const stepPortion = (index: number, deltaGrams: number) => {
+    if (!ingredients) return;
+    const item = ingredients[index];
+    const currentGrams = round(item.estimatedGrams);
+    const nextGrams = Math.max(10, currentGrams + deltaGrams);
+    // A zero or missing estimate has no ratio to scale by; fall back to a
+    // flat per-gram rate from whatever macro values came back.
+    const ratio = currentGrams > 0 ? nextGrams / currentGrams : 1;
+    updateIngredient(index, {
+      estimatedGrams: nextGrams,
+      calories: item.calories * ratio,
+      proteinG: item.proteinG * ratio,
+      carbsG: item.carbsG * ratio,
+      fatG: item.fatG * ratio,
+    });
+  };
+
   const saveAll = async () => {
     if (!ingredients) return;
     const selected = ingredients.filter((item) => item.include);
@@ -141,12 +171,12 @@ export function PhotoTab({
     // is exactly the sum of the breakdown the detail screen shows.
     const ingredientRows = selected.map((item) => ({
       name: item.name,
-      quantity: Math.round(item.estimatedGrams),
+      quantity: round(item.estimatedGrams),
       unit: "g",
-      calories: Math.round(item.calories),
-      proteinG: Math.round(item.proteinG),
-      carbsG: Math.round(item.carbsG),
-      fatG: Math.round(item.fatG),
+      calories: round(item.calories),
+      proteinG: round(item.proteinG),
+      carbsG: round(item.carbsG),
+      fatG: round(item.fatG),
     }));
     const total = ingredientRows.reduce(
       (sum, item) => ({
@@ -188,9 +218,13 @@ export function PhotoTab({
   if (!photoUri) {
     return (
       <View style={styles.pickerContainer}>
+        <View style={styles.viewfinder}>
+          <View style={styles.viewfinderFrame} />
+          <Text style={styles.viewfinderHint}>Frame the whole plate</Text>
+        </View>
         <Text style={styles.hint}>
-          Snap a photo and each item gets its own portion estimate. Nothing is
-          logged as a generic "1 serving".
+          CalorieAI estimates each item and you check the numbers before
+          anything is saved.
         </Text>
         <Button label="Take a photo" onPress={() => pickAndAnalyze("camera")} />
         <Button
@@ -202,193 +236,351 @@ export function PhotoTab({
     );
   }
 
+  const selected = ingredients?.filter((item) => item.include) ?? [];
+  const reviewTotal = selected.reduce((sum, item) => sum + item.calories, 0);
+
   return (
-    <ScrollView style={styles.form} contentContainerStyle={{ gap: 12 }}>
-      <Image source={{ uri: photoUri }} style={styles.preview} />
-
-      {analyzing ? (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator />
-          <Text style={styles.hint}>Identifying ingredients…</Text>
-        </View>
-      ) : null}
-
-      {ingredients ? (
-        <View style={styles.mealNameGroup}>
-          <Text style={styles.fieldLabel}>Meal name</Text>
-          <TextInput
-            style={styles.mealNameInput}
-            value={mealName}
-            onChangeText={(text) => {
-              setNameEdited(true);
-              setMealName(text);
-            }}
-          />
-        </View>
-      ) : null}
-
-      {ingredients?.map((item, index) => (
-        <View key={index} style={styles.ingredientCard}>
-          <View style={styles.ingredientHeaderRow}>
-            <TouchableOpacity
-              onPress={() =>
-                updateIngredient(index, { include: !item.include })
-              }
-              style={[
-                styles.checkbox,
-                item.include && styles.checkboxChecked,
-              ]}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: item.include }}
-              accessibilityLabel={`Include ${item.name || "this item"} in the log`}
-            />
-            <TextInput
-              style={styles.ingredientName}
-              value={item.name}
-              onChangeText={(text) => updateIngredient(index, { name: text })}
-            />
-          </View>
-          <View style={styles.ingredientFieldsRow}>
-            <IngredientField
-              label="grams"
-              value={item.estimatedGrams}
-              onChangeText={(n) =>
-                updateIngredient(index, { estimatedGrams: n })
-              }
-            />
-            <IngredientField
-              label="cal"
-              value={item.calories}
-              onChangeText={(n) => updateIngredient(index, { calories: n })}
-            />
-            <IngredientField
-              label="protein"
-              value={item.proteinG}
-              onChangeText={(n) => updateIngredient(index, { proteinG: n })}
-            />
-            <IngredientField
-              label="carbs"
-              value={item.carbsG}
-              onChangeText={(n) => updateIngredient(index, { carbsG: n })}
-            />
-            <IngredientField
-              label="fat"
-              value={item.fatG}
-              onChangeText={(n) => updateIngredient(index, { fatG: n })}
-            />
-          </View>
-        </View>
-      ))}
-
-      {ingredients ? (
-        <View style={styles.buttonRow}>
-          <View style={styles.buttonHalf}>
-            <Button
-              label="Retake"
-              variant="secondary"
+    <View style={styles.wrap}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.reviewHead}>
+          <Image source={{ uri: photoUri }} style={styles.thumb} />
+          <View style={styles.reviewHeadMain}>
+            <Text style={styles.eyebrow}>Meal name</Text>
+            {ingredients ? (
+              <TextInput
+                style={styles.mealNameInput}
+                value={mealName}
+                onChangeText={(text) => {
+                  setNameEdited(true);
+                  setMealName(text);
+                }}
+              />
+            ) : (
+              <View style={styles.mealNamePlaceholder} />
+            )}
+            <PressableScale
               onPress={() => {
                 setPhotoUri(null);
                 setIngredients(null);
                 setMealName("");
                 setNameEdited(false);
               }}
-            />
-          </View>
-          <View style={styles.buttonGrow}>
-            <Button label="Add to log" onPress={saveAll} busy={saving} />
+              accessibilityRole="button"
+              accessibilityLabel="Retake photo"
+            >
+              <Text style={styles.retake}>Retake photo</Text>
+            </PressableScale>
           </View>
         </View>
+
+        {analyzing ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator />
+            <Text style={styles.hint}>Identifying items and portions…</Text>
+          </View>
+        ) : null}
+
+        {ingredients ? (
+          <>
+            <View style={styles.itemsHeader}>
+              <Text style={styles.sectionTitle}>Items found</Text>
+              <Text style={styles.sectionNote}>Every number is editable</Text>
+            </View>
+
+            <View style={styles.itemList}>
+              {ingredients.map((item, index) => (
+                <View
+                  key={index}
+                  style={[styles.itemCard, !item.include && styles.itemCardOff]}
+                >
+                  <View style={styles.itemTop}>
+                    <PressableScale
+                      scaleTo={0.9}
+                      onPress={() =>
+                        updateIngredient(index, { include: !item.include })
+                      }
+                      style={[
+                        styles.checkbox,
+                        item.include && styles.checkboxOn,
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: item.include }}
+                      accessibilityLabel={`Include ${item.name || "this item"} in the log`}
+                    >
+                      {item.include ? (
+                        <Text style={styles.checkMark}>✓</Text>
+                      ) : null}
+                    </PressableScale>
+                    <TextInput
+                      style={[
+                        styles.itemName,
+                        !item.include && styles.itemNameOff,
+                      ]}
+                      value={item.name}
+                      onChangeText={(text) =>
+                        updateIngredient(index, { name: text })
+                      }
+                    />
+                  </View>
+
+                  <View style={styles.fieldsRow}>
+                    <ItemField
+                      label="kcal"
+                      value={item.calories}
+                      onChange={(n) =>
+                        updateIngredient(index, { calories: n })
+                      }
+                    />
+                    <ItemField
+                      label="protein"
+                      value={item.proteinG}
+                      onChange={(n) => updateIngredient(index, { proteinG: n })}
+                    />
+                    <ItemField
+                      label="carbs"
+                      value={item.carbsG}
+                      onChange={(n) => updateIngredient(index, { carbsG: n })}
+                    />
+                    <ItemField
+                      label="fat"
+                      value={item.fatG}
+                      onChange={(n) => updateIngredient(index, { fatG: n })}
+                    />
+                  </View>
+
+                  <View style={styles.portionRow}>
+                    <Text style={styles.portionLabel}>Adjust portion</Text>
+                    <View style={styles.stepper}>
+                      <PressableScale
+                        scaleTo={0.92}
+                        style={styles.stepButton}
+                        onPress={() => stepPortion(index, -10)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Reduce ${item.name} portion`}
+                      >
+                        <Text style={styles.stepGlyph}>−</Text>
+                      </PressableScale>
+                      <Text style={styles.stepValue}>
+                        {round(item.estimatedGrams)} g
+                      </Text>
+                      <PressableScale
+                        scaleTo={0.92}
+                        style={styles.stepButton}
+                        onPress={() => stepPortion(index, 10)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Increase ${item.name} portion`}
+                      >
+                        <Text style={styles.stepGlyph}>+</Text>
+                      </PressableScale>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
+
+      {ingredients ? (
+        <View style={styles.footer}>
+          <View style={styles.footerTop}>
+            <Text style={styles.footerCount}>
+              {selected.length} of {ingredients.length} item
+              {ingredients.length === 1 ? "" : "s"} included
+            </Text>
+            <Text style={styles.footerTotal}>{round(reviewTotal)} kcal</Text>
+          </View>
+          <Button label="Add to log" onPress={saveAll} busy={saving} />
+        </View>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
-function IngredientField({
+function ItemField({
   label,
   value,
-  onChangeText,
+  onChange,
 }: {
   label: string;
   value: number;
-  onChangeText: (value: number) => void;
+  onChange: (value: number) => void;
 }) {
   return (
-    <View style={styles.fieldGroup}>
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         style={styles.fieldInput}
-        value={String(value)}
+        value={String(round(value))}
         keyboardType="numeric"
-        onChangeText={(text) => onChangeText(Number(text) || 0)}
+        onChangeText={(text) => onChange(Number(text) || 0)}
       />
-      <Text style={styles.fieldLabel}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { flex: 1 },
+  scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.md },
+
   pickerContainer: {
     flex: 1,
     padding: spacing.lg,
     gap: spacing.sm + 4,
     justifyContent: "center",
   },
+  viewfinder: {
+    ...cardTight,
+    backgroundColor: colors.surface,
+    minHeight: 220,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  viewfinderFrame: {
+    width: 44,
+    height: 36,
+    borderRadius: radii.sm,
+    borderWidth: 1.5,
+    borderColor: colors.textMuted,
+  },
+  viewfinderHint: { ...type.label, color: colors.textMuted },
   hint: { ...type.body, color: colors.textMuted, textAlign: "center" },
-  form: { flex: 1, padding: spacing.lg },
-  preview: { width: "100%", height: 200, borderRadius: radii.lg },
   loadingRow: {
     flexDirection: "row",
     gap: spacing.sm + 2,
     alignItems: "center",
   },
-  ingredientCard: {
-    backgroundColor: colors.surface,
+
+  reviewHead: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
+  thumb: {
+    width: 80,
+    height: 80,
     borderRadius: radii.md,
-    padding: spacing.sm + 6,
-    gap: spacing.sm + 2,
+    backgroundColor: colors.surface,
   },
-  ingredientHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm + 2,
+  reviewHeadMain: { flex: 1, gap: spacing.sm },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: colors.textMuted,
   },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.sm - 2,
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
-  ingredientName: {
-    flex: 1,
-    ...type.bodyStrong,
-    color: colors.text,
-  },
-  ingredientFieldsRow: { flexDirection: "row", gap: spacing.sm },
-  fieldGroup: { flex: 1, alignItems: "center" },
-  fieldInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingVertical: spacing.sm,
-    textAlign: "center",
-    color: colors.text,
-    width: "100%",
-    ...tabular,
-  },
-  buttonHalf: { width: 120 },
-  buttonGrow: { flex: 1 },
-  fieldLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  mealNameGroup: { gap: spacing.xs + 2 },
   mealNameInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    minHeight: 48,
-    ...type.bodyStrong,
+    minHeight: 44,
+    ...type.body,
     color: colors.text,
   },
-  buttonRow: { flexDirection: "row", gap: spacing.sm + 4 },
+  mealNamePlaceholder: {
+    height: 44,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+  },
+  retake: { ...type.label, color: colors.accent, fontWeight: "600" },
+
+  itemsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  sectionTitle: { ...type.bodyStrong, fontSize: 17, color: colors.text },
+  sectionNote: { fontSize: 12.5, color: colors.textMuted },
+
+  itemList: { gap: spacing.sm },
+  itemCard: { ...cardTight, padding: spacing.md, gap: spacing.sm + 4 },
+  itemCardOff: { backgroundColor: colors.surface },
+  itemTop: { flexDirection: "row", gap: spacing.sm + 4, alignItems: "flex-start" },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.sm,
+    borderWidth: 1.5,
+    borderColor: colors.track,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  checkMark: { color: colors.onAccent, fontSize: 13, fontWeight: "700" },
+  itemName: { flex: 1, ...type.body, color: colors.text },
+  itemNameOff: { color: colors.textMuted },
+
+  fieldsRow: { flexDirection: "row", gap: spacing.xs + 2 },
+  field: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.xs + 4,
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
+  fieldLabel: {
+    fontSize: 9.5,
+    fontWeight: "500",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
+  fieldInput: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: colors.text,
+    paddingVertical: 4,
+    ...tabular,
+  },
+
+  portionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  portionLabel: { fontSize: 12.5, color: colors.textMuted },
+  stepper: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 2 },
+  stepButton: {
+    width: 44,
+    height: 36,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepGlyph: { fontSize: 17, color: colors.text },
+  stepValue: {
+    minWidth: 60,
+    textAlign: "center",
+    ...type.label,
+    color: colors.text,
+    ...tabular,
+  },
+
+  footer: {
+    ...card,
+    borderRadius: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    padding: spacing.lg,
+    paddingBottom: spacing.lg + 6,
+    gap: spacing.sm + 4,
+  },
+  footerTop: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  footerCount: { ...type.body, color: colors.textMuted },
+  footerTotal: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: colors.text,
+    ...tabular,
+  },
 });

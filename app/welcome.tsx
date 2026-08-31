@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   mark: {
-    width: 88,
-    height: 88,
+    width: 76,
+    height: 76,
     borderRadius: radii.lg,
     backgroundColor: colors.accent,
     alignItems: "center",
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
   },
   markText: {
     color: colors.onAccent,
-    fontSize: 32,
-    fontWeight: "800",
+    fontSize: 28,
+    fontWeight: "600",
     letterSpacing: 1,
   },
   title: { ...type.display, color: colors.text, textAlign: "center" },

@@ -480,17 +480,39 @@ function OnboardingScreenContent() {
 
         {currentStepKey === "review" && goals && (
           <Step
-            title={`You're all set, ${firstName.trim() || "there"}`}
-            subtitle="These are your daily targets. Fine-tune them anytime in Settings."
+            title="Your daily targets"
+            subtitle={`Computed from your answers, ${
+              firstName.trim() || "there"
+            }. You can change any of it later in settings.`}
           >
             <View style={styles.reviewCard}>
-              <Text style={styles.reviewValue}>{goals.calorieGoal}</Text>
-              <Text style={styles.reviewUnit}>calories a day</Text>
-              <View style={styles.reviewMacroRow}>
-                <ReviewMacro label="Protein" value={goals.proteinGoalG} color={colors.protein} />
-                <ReviewMacro label="Carbs" value={goals.carbsGoalG} color={colors.carbs} />
-                <ReviewMacro label="Fat" value={goals.fatGoalG} color={colors.fat} />
-              </View>
+              <Text style={styles.reviewLabel}>Daily calories</Text>
+              <Text style={styles.reviewValue}>
+                {goals.calorieGoal.toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.reviewRows}>
+              {(
+                [
+                  ["Protein", goals.proteinGoalG, 4, colors.protein],
+                  ["Carbs", goals.carbsGoalG, 4, colors.carbs],
+                  ["Fat", goals.fatGoalG, 9, colors.fat],
+                ] as const
+              ).map(([label, grams, kcalPerG, color]) => (
+                <View key={label} style={styles.reviewRow}>
+                  <View
+                    style={[styles.reviewRowDot, { backgroundColor: color }]}
+                  />
+                  <Text style={styles.reviewRowName}>{label}</Text>
+                  <Text style={styles.reviewRowValue}>{grams} g</Text>
+                  <Text style={styles.reviewRowPct}>
+                    {Math.round(
+                      ((grams * kcalPerG) / goals.calorieGoal) * 100,
+                    )}
+                    %
+                  </Text>
+                </View>
+              ))}
             </View>
           </Step>
         )}
@@ -549,24 +571,6 @@ function Chip({
         {label}
       </Text>
     </TouchableOpacity>
-  );
-}
-
-function ReviewMacro({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <View style={styles.reviewMacro}>
-      <View style={[styles.reviewMacroDot, { backgroundColor: color }]} />
-      <Text style={styles.reviewMacroValue}>{value}g</Text>
-      <Text style={styles.reviewMacroLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -665,23 +669,37 @@ const styles = StyleSheet.create({
   optionLabel: { ...type.bodyStrong, color: colors.text },
   optionHint: { ...type.label, color: colors.textMuted, marginTop: 2 },
   reviewCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.accentTint,
     borderRadius: radii.lg,
-    padding: spacing.xl,
-    alignItems: "center",
-    gap: spacing.md,
+    padding: spacing.lg,
+    gap: spacing.sm + 4,
   },
-  reviewValue: { fontSize: 52, fontWeight: "800", color: colors.text },
-  reviewUnit: { ...type.body, color: colors.textMuted, marginTop: -8 },
-  reviewMacroRow: {
+  reviewLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: colors.accent,
+  },
+  reviewValue: {
+    fontSize: 52,
+    fontWeight: "600",
+    letterSpacing: -1.5,
+    color: colors.text,
+  },
+  reviewRows: { gap: spacing.sm, marginTop: spacing.sm + 4 },
+  reviewRow: {
     flexDirection: "row",
-    gap: spacing.lg,
-    marginTop: spacing.sm,
+    alignItems: "center",
+    gap: spacing.sm + 4,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.md,
   },
-  reviewMacro: { alignItems: "center", gap: 4 },
-  reviewMacroDot: { width: 8, height: 8, borderRadius: 4 },
-  reviewMacroValue: { ...type.bodyStrong, color: colors.text },
-  reviewMacroLabel: { ...type.label, color: colors.textMuted },
+  reviewRowDot: { width: 8, height: 8, borderRadius: 4 },
+  reviewRowName: { ...type.body, color: colors.text, flex: 1 },
+  reviewRowValue: { ...type.bodyStrong, color: colors.text },
+  reviewRowPct: { ...type.label, color: colors.textMuted },
   footer: { padding: spacing.lg },
   primaryButton: {
     backgroundColor: colors.accent,

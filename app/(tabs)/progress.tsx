@@ -14,7 +14,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { colors, radii, spacing, tabular, type } from "../../constants/theme";
+import {
+  card,
+  cardTight,
+  colors,
+  radii,
+  spacing,
+  tabular,
+  type,
+} from "../../constants/theme";
 import { Button } from "../../components/ui/Button";
 import { PressableScale } from "../../components/ui/PressableScale";
 import { ProgressPhotos } from "../../components/ProgressPhotos";
@@ -66,7 +74,12 @@ export default function ProgressScreen() {
           accessibilityRole="button"
           accessibilityLabel="Open the monthly report"
         >
-          <Text style={styles.reportText}>Monthly report</Text>
+          <View style={styles.reportMain}>
+            <Text style={styles.reportText}>Monthly report</Text>
+            <Text style={styles.reportMeta}>
+              {new Date().toLocaleDateString(undefined, { month: "long" })}
+            </Text>
+          </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </PressableScale>
 
@@ -90,14 +103,17 @@ export default function ProgressScreen() {
         </View>
 
         <View style={styles.logCard}>
-          <UnitToggle
-            options={[
-              { value: "lbs", label: "lbs" },
-              { value: "kg", label: "kg" },
-            ]}
-            selected={unit}
-            onSelect={setUnit}
-          />
+          <View style={styles.logHeader}>
+            <Text style={styles.sectionTitle}>Log a weight</Text>
+            <UnitToggle
+              options={[
+                { value: "lbs", label: "lbs" },
+                { value: "kg", label: "kg" },
+              ]}
+              selected={unit}
+              onSelect={setUnit}
+            />
+          </View>
           <View style={styles.logRow}>
             <TextInput
               style={[styles.input, { flex: 1 }]}
@@ -115,12 +131,14 @@ export default function ProgressScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Weight history</Text>
-        {weightLogs === undefined ? (
-          <Text style={styles.emptyText}>Loading…</Text>
-        ) : (
-          <WeightChart entries={weightLogs} />
-        )}
+        <View style={styles.historyCard}>
+          <Text style={styles.sectionTitle}>Weight history</Text>
+          {weightLogs === undefined ? (
+            <Text style={styles.emptyText}>Loading…</Text>
+          ) : (
+            <WeightChart entries={weightLogs} />
+          )}
+        </View>
 
         <ProgressPhotos />
       </ScrollView>
@@ -133,20 +151,22 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   title: { ...type.display, fontSize: 24, color: colors.text },
   row: { flexDirection: "row", gap: spacing.sm },
-  card: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+  card: { ...cardTight, flex: 1, padding: spacing.md },
+  cardValue: {
+    fontSize: 26,
+    fontWeight: "600",
+    letterSpacing: -0.6,
+    color: colors.text,
+    ...tabular,
   },
-  cardValue: { fontSize: 22, fontWeight: "800", color: colors.text, ...tabular },
-  cardLabel: { ...type.label, color: colors.textMuted, marginTop: 4 },
-  logCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
+  cardLabel: { ...type.label, color: colors.textMuted, marginTop: 6, ...tabular },
+  logCard: { ...card, padding: spacing.md, gap: spacing.sm + 2 },
+  logHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
+  historyCard: { ...card, padding: spacing.md, gap: spacing.sm },
   logRow: { flexDirection: "row", gap: spacing.sm },
   input: {
     borderWidth: 1,
@@ -160,7 +180,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     ...tabular,
   },
-  sectionTitle: { ...type.title, color: colors.text, marginTop: spacing.xs },
+  sectionTitle: { ...type.bodyStrong, fontSize: 15, color: colors.text },
   reportRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -169,7 +189,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingVertical: spacing.sm + 4,
     paddingHorizontal: spacing.md,
+    minHeight: 56,
   },
-  reportText: { ...type.bodyStrong, color: colors.text },
+  reportMain: { gap: 5 },
+  reportText: { ...type.body, color: colors.text },
+  reportMeta: { fontSize: 12.5, color: colors.textMuted },
   emptyText: { color: colors.textMuted },
 });

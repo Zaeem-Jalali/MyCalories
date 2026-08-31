@@ -20,10 +20,16 @@ export function PressableScale({
   style,
   disabled,
   scaleTo = 0.97,
+  flex,
   ...rest
 }: PressableProps & {
   style?: StyleProp<ViewStyle>;
   scaleTo?: number;
+  // The visual style sits on the inner animated view so the whole box scales
+  // on press. That leaves the outer Pressable as the flex child, so a
+  // PressableScale that needs to grow inside a row (e.g. an even day strip)
+  // passes `flex` and it lands where the layout engine can use it.
+  flex?: number;
   children: React.ReactNode;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -41,6 +47,7 @@ export function PressableScale({
     <Pressable
       {...rest}
       disabled={disabled}
+      style={flex !== undefined ? { flex } : undefined}
       onPressIn={(event) => {
         animate(scaleTo);
         rest.onPressIn?.(event);

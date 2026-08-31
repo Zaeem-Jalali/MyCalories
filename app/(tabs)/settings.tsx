@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { colors, radii, spacing, tabular, type } from "../../constants/theme";
+import { card, colors, radii, spacing, tabular, type } from "../../constants/theme";
 import { Button } from "../../components/ui/Button";
 import { Chip } from "../../components/ui/Chip";
 import { PressableScale } from "../../components/ui/PressableScale";
@@ -26,6 +26,11 @@ import {
   getDailyReminderTime,
   setDailyReminder,
 } from "../../lib/notifications";
+import { computeGoals } from "../../lib/goalCalculator";
+
+// A cut or bulk with no saved pace defaults here, matching onboarding's
+// starting pick. The full pace control lives in "Edit profile answers".
+const DEFAULT_RATE_LBS_PER_WEEK = 1;
 
 const DIRECTIONS = ["cut", "maintain", "bulk"] as const;
 const DIRECTION_LABELS: Record<(typeof DIRECTIONS)[number], string> = {
@@ -45,6 +50,7 @@ export default function SettingsScreen() {
   const { signOut } = useAuthActions();
   const profile = useQuery(api.profile.get, {});
   const account = useQuery(api.users.current, {});
+  const weightLogs = useQuery(api.weightLogs.list, {});
   const upsertProfile = useMutation(api.profile.upsert);
 
   const [calorieGoal, setCalorieGoal] = useState("2000");
@@ -53,6 +59,43 @@ export default function SettingsScreen() {
   const [fatGoalG, setFatGoalG] = useState("70");
   const [goalDirection, setGoalDirection] =
     useState<(typeof DIRECTIONS)[number]>("maintain");
+
+  const latestWeightLbs =
+    weightLogs && weightLogs.length > 0
+      ? weightLogs[weightLogs.length - 1].weightLbs
+      : undefined;
+
+  const rate = profile?.rateLbsPerWeek || DEFAULT_RATE_LBS_PER_WEEK;
+
+  // Switching cut / maintain / bulk repoints the daily calorie and macro
+  // targets, so the numbers always match the direction instead of going stale.
+  // Needs a complete profile (sex, age, height, activity, a logged weight); an
+  // account that only ever used Settings keeps manual entry.
+  const pickDirection = (direction: (typeof DIRECTIONS)[number]) => {
+    setGoalDirection(direction);
+    if (
+      !profile?.sex ||
+      !profile?.age ||
+      !profile?.heightCm ||
+      !profile?.activityLevel ||
+      latestWeightLbs === undefined
+    ) {
+      return;
+    }
+    const goals = computeGoals({
+      sex: profile.sex,
+      age: profile.age,
+      heightCm: profile.heightCm,
+      currentWeightLbs: latestWeightLbs,
+      activityLevel: profile.activityLevel,
+      goalDirection: direction,
+      rateLbsPerWeek: direction === "maintain" ? 0 : rate,
+    });
+    setCalorieGoal(String(goals.calorieGoal));
+    setProteinGoalG(String(goals.proteinGoalG));
+    setCarbsGoalG(String(goals.carbsGoalG));
+    setFatGoalG(String(goals.fatGoalG));
+  };
 
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderHour, setReminderHour] = useState(19);
@@ -165,6 +208,9 @@ export default function SettingsScreen() {
         carbsGoalG: Number(carbsGoalG),
         fatGoalG: Number(fatGoalG),
         goalDirection,
+        // Persist the pace the recompute assumed, so re-opening onboarding or
+        // this screen stays consistent with the numbers just saved.
+        rateLbsPerWeek: goalDirection === "maintain" ? 0 : rate,
         safetyFloorOverride: false,
       });
       Alert.alert("Saved", "Your goals have been updated.");
@@ -182,10 +228,12 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
 
         <View style={styles.accountCard}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <Text style={styles.accountEmail}>
-            {account?.email ?? "Signed in"}
-          </Text>
+          <View style={styles.accountHead}>
+            <Text style={styles.eyebrow}>Account</Text>
+            <Text style={styles.accountEmail}>
+              {account?.email ?? "Signed in"}
+            </Text>
+          </View>
           <PressableScale
             scaleTo={0.99}
             style={styles.accountAction}
@@ -202,7 +250,7 @@ export default function SettingsScreen() {
           </PressableScale>
           <PressableScale
             scaleTo={0.99}
-            style={styles.accountAction}
+            style={[styles.accountAction, styles.accountActionLast]}
             onPress={confirmSignOut}
             accessibilityRole="button"
             accessibilityLabel="Sign out"
@@ -211,34 +259,32 @@ export default function SettingsScreen() {
           </PressableScale>
         </View>
 
-        <Text style={styles.sectionTitle}>Goal direction</Text>
+        <Text style={styles.groupTitle}>Goals</Text>
         <View style={styles.directionRow}>
           {DIRECTIONS.map((direction) => (
             <Chip
               key={direction}
               label={DIRECTION_LABELS[direction]}
               selected={goalDirection === direction}
-              onPress={() => setGoalDirection(direction)}
+              onPress={() => pickDirection(direction)}
             />
           ))}
         </View>
 
-        <Field
-          label="Daily calorie goal"
-          value={calorieGoal}
-          onChangeText={setCalorieGoal}
-        />
-        <Field
-          label="Protein goal (g)"
-          value={proteinGoalG}
-          onChangeText={setProteinGoalG}
-        />
-        <Field
-          label="Carbs goal (g)"
-          value={carbsGoalG}
-          onChangeText={setCarbsGoalG}
-        />
-        <Field label="Fat goal (g)" value={fatGoalG} onChangeText={setFatGoalG} />
+        <View style={styles.fieldGroup}>
+          <Field
+            label="Daily calories"
+            value={calorieGoal}
+            onChangeText={setCalorieGoal}
+          />
+          <Field
+            label="Protein"
+            value={proteinGoalG}
+            onChangeText={setProteinGoalG}
+          />
+          <Field label="Carbs" value={carbsGoalG} onChangeText={setCarbsGoalG} />
+          <Field label="Fat" value={fatGoalG} onChangeText={setFatGoalG} />
+        </View>
 
         <Button label="Save goals" onPress={handleSave} />
 
@@ -248,8 +294,9 @@ export default function SettingsScreen() {
             <Switch
               value={reminderEnabled}
               onValueChange={toggleReminder}
-              trackColor={{ false: colors.border, true: colors.accentTint }}
-              thumbColor={reminderEnabled ? colors.accent : undefined}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor={colors.background}
+              ios_backgroundColor={colors.border}
             />
           </View>
           {reminderEnabled ? (
@@ -285,13 +332,14 @@ function Field({
   onChangeText: (text: string) => void;
 }) {
   return (
-    <View>
+    <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         keyboardType="numeric"
+        textAlign="right"
       />
     </View>
   );
@@ -301,41 +349,65 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.sm + 4, paddingBottom: spacing.xl },
   title: { ...type.title, fontSize: 24, color: colors.text },
-  sectionTitle: { ...type.bodyStrong, color: colors.text },
+  sectionTitle: { ...type.bodyStrong, fontSize: 15, color: colors.text },
+  groupTitle: {
+    ...type.bodyStrong,
+    fontSize: 17,
+    color: colors.text,
+    marginTop: spacing.md,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
   directionRow: { flexDirection: "row", gap: spacing.sm },
-  fieldLabel: { ...type.label, color: colors.textMuted, marginBottom: spacing.xs + 2 },
-  input: {
+  fieldGroup: { gap: spacing.sm },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
+    paddingLeft: spacing.md,
+    minHeight: 52,
+  },
+  fieldLabel: { ...type.body, color: colors.textMuted },
+  input: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     fontSize: 16,
+    fontWeight: "600",
     color: colors.text,
-    minHeight: 48,
+    minWidth: 110,
     ...tabular,
   },
-  accountCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+  accountCard: { ...card, overflow: "hidden" },
+  accountHead: {
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  accountEmail: { ...type.label, color: colors.textMuted },
+  accountEmail: { ...type.body, color: colors.text },
   accountAction: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: spacing.sm + 4,
-    minHeight: 48,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    paddingHorizontal: spacing.md,
+    minHeight: 52,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  accountActionText: { color: colors.text, fontWeight: "600" },
-  signOutText: { color: colors.danger, fontWeight: "600" },
+  accountActionLast: { borderBottomWidth: 0 },
+  accountActionText: { ...type.body, color: colors.text },
+  signOutText: { ...type.body, color: colors.accent },
   reminderCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+    ...card,
     padding: spacing.md,
     gap: spacing.sm,
     marginTop: spacing.md,

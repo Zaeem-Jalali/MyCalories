@@ -47,8 +47,28 @@ export const spacing = {
 // and this app doesn't yet warrant custom font-loading infrastructure.
 // Confidence comes from size/weight/line-height, not a display typeface.
 export const type = {
-  display: { fontSize: 32, fontWeight: "800" as const, lineHeight: 38 },
-  title: { fontSize: 22, fontWeight: "700" as const, lineHeight: 28 },
+  // Direction 3: confidence comes from size and tight tracking, not a heavy
+  // weight. Headings sit at 600 with negative letter-spacing rather than 800.
+  display: {
+    fontSize: 32,
+    fontWeight: "600" as const,
+    lineHeight: 38,
+    letterSpacing: -0.6,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "600" as const,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
+  // The one figure that carries a whole screen: eaten calories on home, the
+  // computed goal on the onboarding review. Nothing else uses this size.
+  hero: {
+    fontSize: 60,
+    fontWeight: "600" as const,
+    lineHeight: 58,
+    letterSpacing: -2,
+  },
   body: { fontSize: 16, fontWeight: "400" as const, lineHeight: 22 },
   bodyStrong: { fontSize: 16, fontWeight: "600" as const, lineHeight: 22 },
   label: { fontSize: 13, fontWeight: "500" as const, lineHeight: 17 },
@@ -58,6 +78,19 @@ export const type = {
 // this, so digits keep a fixed width and columns of numbers line up instead
 // of shifting as the values change.
 export const tabular = { fontVariant: ["tabular-nums" as const] };
+
+// Direction 3's primary separation mechanism: a hairline outline on the
+// background, not a filled cream panel. `surface` stays for small inset fills
+// (the exercise row, a segmented-control track) where an outline would be
+// noise. Spread this into a StyleSheet entry and add padding per use.
+export const card = {
+  backgroundColor: colors.background,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: radii.lg,
+} as const;
+
+export const cardTight = { ...card, borderRadius: radii.md } as const;
 
 // One elevation level, tinted with the text ink rather than black, so a
 // raised surface reads warm against the cream palette. Surfaces are separated

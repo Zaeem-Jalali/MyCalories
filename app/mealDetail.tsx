@@ -14,9 +14,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ProgressTrack } from "../components/ui/ProgressTrack";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { card, cardTight, colors, radii, spacing, tabular, type } from "../constants/theme";
+import { formatDateLabel } from "../lib/dateKey";
 import { Authenticated } from "convex/react";
 
 function MealDetailScreenContent() {
@@ -28,6 +30,7 @@ function MealDetailScreenContent() {
     api.foodLogs.get,
     id ? { id: id as Id<"foodLogs"> } : "skip",
   );
+  const profile = useQuery(api.profile.get, {});
   const removeLog = useMutation(api.foodLogs.remove);
   const [deleting, setDeleting] = useState(false);
 
@@ -76,6 +79,10 @@ function MealDetailScreenContent() {
   }
 
   const ingredients = log.ingredients ?? [];
+  const itemLine =
+    ingredients.length > 0
+      ? `, ${ingredients.length} item${ingredients.length === 1 ? "" : "s"}`
+      : "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -86,7 +93,8 @@ function MealDetailScreenContent() {
           accessibilityLabel="Go back"
           style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+          <Text style={styles.backLabel}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={confirmDelete}
@@ -110,34 +118,56 @@ function MealDetailScreenContent() {
 
         <Text style={styles.title}>{log.name}</Text>
         <Text style={styles.subtitle}>
-          {Math.round(log.calories)} cal · {Math.round(log.quantity)}
-          {log.unit} · {log.date}
+          {Math.round(log.calories)} kcal{itemLine}, logged {formatDateLabel(log.date)}
         </Text>
 
         <View style={styles.macroRow}>
-          <Macro label="Protein" value={log.proteinG} color={colors.protein} />
-          <Macro label="Carbs" value={log.carbsG} color={colors.carbs} />
-          <Macro label="Fat" value={log.fatG} color={colors.fat} />
+          <Macro
+            label="Protein"
+            value={log.proteinG}
+            goal={profile?.proteinGoalG}
+            color={colors.protein}
+          />
+          <Macro
+            label="Carbs"
+            value={log.carbsG}
+            goal={profile?.carbsGoalG}
+            color={colors.carbs}
+          />
+          <Macro
+            label="Fat"
+            value={log.fatG}
+            goal={profile?.fatGoalG}
+            color={colors.fat}
+          />
         </View>
 
         {ingredients.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>What's in it</Text>
-            {ingredients.map((item, index) => (
-              <View key={index} style={styles.ingredientRow}>
-                <View style={styles.ingredientMain}>
-                  <Text style={styles.ingredientName}>{item.name}</Text>
-                  <Text style={styles.ingredientMeta}>
-                    {Math.round(item.quantity)}
-                    {item.unit} · {Math.round(item.proteinG)}p{" "}
-                    {Math.round(item.carbsG)}c {Math.round(item.fatG)}f
+            <Text style={styles.sectionTitle}>Ingredient breakdown</Text>
+            <View style={styles.ingredientCard}>
+              {ingredients.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.ingredientRow,
+                    index === ingredients.length - 1 && styles.ingredientRowLast,
+                  ]}
+                >
+                  <View style={styles.ingredientMain}>
+                    <Text style={styles.ingredientName}>{item.name}</Text>
+                    <Text style={styles.ingredientMeta}>
+                      {Math.round(item.quantity)}
+                      {item.unit} · {Math.round(item.proteinG)}p{" "}
+                      {Math.round(item.carbsG)}c {Math.round(item.fatG)}f
+                    </Text>
+                  </View>
+                  <Text style={styles.ingredientCalories}>
+                    {Math.round(item.calories)}
                   </Text>
                 </View>
-                <Text style={styles.ingredientCalories}>
-                  {Math.round(item.calories)} cal
-                </Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </>
         ) : null}
       </ScrollView>
@@ -148,16 +178,23 @@ function MealDetailScreenContent() {
 function Macro({
   label,
   value,
+  goal,
   color,
 }: {
   label: string;
   value: number;
+  goal?: number;
   color: string;
 }) {
   return (
     <View style={styles.macroCard}>
-      <Text style={[styles.macroValue, { color }]}>{Math.round(value)}g</Text>
       <Text style={styles.macroLabel}>{label}</Text>
+      <Text style={styles.macroValue}>{Math.round(value)} g</Text>
+      {goal ? (
+        <View style={styles.macroTrack}>
+          <ProgressTrack value={value} goal={goal} color={color} height={4} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -172,7 +209,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,
   },
-  backButton: { padding: spacing.xs },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    padding: spacing.xs,
+  },
+  backLabel: { ...type.label, color: colors.text },
   deleteButton: {
     padding: spacing.xs,
     minWidth: 40,
@@ -180,39 +223,60 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  content: { padding: 20, gap: spacing.md, paddingBottom: 40 },
+  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   photo: { width: "100%", height: 260, borderRadius: radii.lg },
-  title: { fontSize: 24, fontWeight: "700", color: colors.text },
-  subtitle: { ...type.label, color: colors.textMuted, marginTop: -8 },
-  macroRow: { flexDirection: "row", gap: 12 },
-  macroCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: 14,
-    alignItems: "center",
+  title: {
+    ...type.title,
+    color: colors.text,
   },
-  macroValue: { fontSize: 18, fontWeight: "700" },
-  macroLabel: { color: colors.textMuted, marginTop: 4, fontSize: 13 },
+  subtitle: {
+    ...type.label,
+    color: colors.textMuted,
+    marginTop: -spacing.sm,
+    ...tabular,
+  },
+  macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
+  macroCard: { ...cardTight, flex: 1, padding: spacing.sm + 6 },
+  macroLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
+  macroValue: {
+    fontSize: 21,
+    fontWeight: "600",
+    color: colors.text,
+    marginTop: spacing.sm + 2,
+    ...tabular,
+  },
+  macroTrack: { marginTop: spacing.sm + 4 },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...type.bodyStrong,
+    fontSize: 17,
     color: colors.text,
     marginTop: spacing.xs,
   },
+  ingredientCard: { ...card, overflow: "hidden" },
   ingredientRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingVertical: 10,
+    gap: spacing.sm + 4,
+    padding: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  ingredientMain: { flex: 1, gap: 2 },
-  ingredientName: { color: colors.text, fontWeight: "500" },
-  ingredientMeta: { ...type.label, color: colors.textMuted },
-  ingredientCalories: { color: colors.textMuted },
+  ingredientRowLast: { borderBottomWidth: 0 },
+  ingredientMain: { flex: 1, gap: 4 },
+  ingredientName: { ...type.body, color: colors.text },
+  ingredientMeta: { ...type.label, color: colors.textMuted, ...tabular },
+  ingredientCalories: {
+    ...type.bodyStrong,
+    color: colors.text,
+    ...tabular,
+  },
   emptyText: { color: colors.textMuted },
 });
 
