@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -26,6 +28,36 @@ function MealDetailScreenContent() {
     api.foodLogs.get,
     id ? { id: id as Id<"foodLogs"> } : "skip",
   );
+  const removeLog = useMutation(api.foodLogs.remove);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete this entry?",
+      "It will be removed from the day's log. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (!id) return;
+            setDeleting(true);
+            try {
+              await removeLog({ id: id as Id<"foodLogs"> });
+              router.back();
+            } catch (error) {
+              setDeleting(false);
+              Alert.alert(
+                "Couldn't delete the entry",
+                error instanceof Error ? error.message : "Unknown error",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (!id || log === null) {
     return (
@@ -55,6 +87,19 @@ function MealDetailScreenContent() {
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={confirmDelete}
+          disabled={deleting}
+          accessibilityRole="button"
+          accessibilityLabel="Delete this entry"
+          style={styles.deleteButton}
+        >
+          {deleting ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -120,8 +165,21 @@ function Macro({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { alignItems: "center", justifyContent: "center" },
-  headerRow: { paddingHorizontal: spacing.sm, paddingTop: spacing.sm },
-  backButton: { padding: spacing.xs, alignSelf: "flex-start" },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  backButton: { padding: spacing.xs },
+  deleteButton: {
+    padding: spacing.xs,
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   content: { padding: 20, gap: spacing.md, paddingBottom: 40 },
   photo: { width: "100%", height: 260, borderRadius: radii.lg },
   title: { fontSize: 24, fontWeight: "700", color: colors.text },

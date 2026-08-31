@@ -17,6 +17,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../components/ui/Button";
 import { PressableScale } from "../components/ui/PressableScale";
 import { colors, radii, spacing, type } from "../constants/theme";
+import {
+  PASSWORD_RULES,
+  emailProblem,
+  passwordProblem,
+} from "../convex/validators";
 
 // Convex Auth throws plain Errors, and a deployed backend redacts those to a
 // bare "Server Error" with a request id. So: map the messages that do come
@@ -24,6 +29,19 @@ import { colors, radii, spacing, type } from "../constants/theme";
 // show anything else verbatim rather than disguising a real backend failure
 // as bad credentials.
 function readableError(error: unknown, mode: "signIn" | "signUp"): string {
+  // A ConvexError passes its payload through un-redacted, so our own
+  // validation messages (weak password, malformed email) arrive here intact.
+  // Only trust the payload when it is actually a ConvexError string, so an
+  // unrelated backend error can't be surfaced verbatim to the user.
+  const named = error as { name?: string; data?: unknown } | null;
+  if (
+    named?.name === "ConvexError" &&
+    typeof named.data === "string" &&
+    named.data.length > 0
+  ) {
+    return named.data;
+  }
+
   const message = error instanceof Error ? error.message : String(error);
 
   if (/already exists/i.test(message)) {
@@ -61,6 +79,20 @@ export default function SignInScreen() {
     if (!trimmedEmail || !password) {
       setError("Enter your email and a password.");
       return;
+    }
+    const emailIssue = emailProblem(trimmedEmail);
+    if (emailIssue) {
+      setError(emailIssue);
+      return;
+    }
+    // Password strength is only enforced when creating an account: an existing
+    // account made under older rules must still be able to sign in.
+    if (mode === "signUp") {
+      const passwordIssue = passwordProblem(password);
+      if (passwordIssue) {
+        setError(passwordIssue);
+        return;
+      }
     }
     setBusy(true);
     setError(null);
@@ -123,6 +155,28 @@ export default function SignInScreen() {
             />
           </View>
 
+          {mode === "signUp" ? (
+            <View style={styles.rules}>
+              {PASSWORD_RULES.map((rule) => {
+                const met = rule.test(password);
+                return (
+                  <View key={rule.label} style={styles.ruleRow}>
+                    <Text
+                      style={[styles.ruleMark, met && styles.ruleMarkMet]}
+                    >
+                      {met ? "✓" : "•"}
+                    </Text>
+                    <Text
+                      style={[styles.ruleText, met && styles.ruleTextMet]}
+                    >
+                      {rule.label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Button
@@ -172,6 +226,17 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: { ...type.label, color: colors.danger },
+  rules: { gap: spacing.xs, marginTop: -spacing.xs },
+  ruleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  ruleMark: {
+    ...type.label,
+    color: colors.textMuted,
+    width: 12,
+    textAlign: "center",
+  },
+  ruleMarkMet: { color: colors.accent },
+  ruleText: { ...type.label, color: colors.textMuted },
+  ruleTextMet: { color: colors.text },
   switchText: {
     ...type.label,
     color: colors.accent,

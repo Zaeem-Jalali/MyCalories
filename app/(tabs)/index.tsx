@@ -26,20 +26,39 @@ import {
   tabular,
   type,
 } from "../../constants/theme";
-import { formatDateLabel, toDateKey, todayKey } from "../../lib/dateKey";
+import {
+  dateFromKey,
+  formatDateLabel,
+  toDateKey,
+  todayKey,
+} from "../../lib/dateKey";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function currentWeekDates(): Date[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
+// The seven days of the week (Sun-Sat) that contains `anchorKey`, so the strip
+// always frames the selected day and paging back a week is just moving the
+// anchor.
+function weekDatesFor(anchorKey: string): Date[] {
+  const anchor = dateFromKey(anchorKey);
+  const startOfWeek = new Date(anchor);
+  startOfWeek.setDate(anchor.getDate() - anchor.getDay());
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
     return d;
   });
+}
+
+function weekRangeLabel(week: Date[]): string {
+  const fmt = (d: Date, withMonth: boolean) =>
+    new Intl.DateTimeFormat(undefined, {
+      month: withMonth ? "short" : undefined,
+      day: "numeric",
+    }).format(d);
+  const first = week[0];
+  const last = week[6];
+  const sameMonth = first.getMonth() === last.getMonth();
+  return `${fmt(first, true)} – ${fmt(last, !sameMonth)}`;
 }
 
 function MacroStat({
@@ -80,7 +99,15 @@ export default function HomeScreen() {
   const eaten = totals?.calories ?? 0;
   const remaining = Math.round(adjustedGoal - eaten);
   const today = todayKey();
-  const week = currentWeekDates();
+  const week = weekDatesFor(date);
+  const atCurrentWeek = week[6] >= dateFromKey(today);
+
+  const shiftWeek = (deltaWeeks: number) => {
+    const d = dateFromKey(date);
+    d.setDate(d.getDate() + deltaWeeks * 7);
+    const key = toDateKey(d);
+    setDate(key > today ? today : key);
+  };
 
   if (profile === undefined) {
     return (
@@ -105,6 +132,44 @@ export default function HomeScreen() {
               <Ionicons name="flame" size={14} color={colors.accent} />
               <Text style={styles.streakText}>{streak}</Text>
             </Animated.View>
+          ) : null}
+        </View>
+
+        <View style={styles.weekNav}>
+          <PressableScale
+            scaleTo={0.9}
+            style={styles.weekArrow}
+            onPress={() => shiftWeek(-1)}
+            accessibilityRole="button"
+            accessibilityLabel="Previous week"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </PressableScale>
+          <Text style={styles.weekLabel}>{weekRangeLabel(week)}</Text>
+          <PressableScale
+            scaleTo={0.9}
+            style={styles.weekArrow}
+            onPress={() => shiftWeek(1)}
+            disabled={atCurrentWeek}
+            accessibilityRole="button"
+            accessibilityLabel="Next week"
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={atCurrentWeek ? colors.border : colors.text}
+            />
+          </PressableScale>
+          {date !== today ? (
+            <PressableScale
+              scaleTo={0.96}
+              style={styles.todayButton}
+              onPress={() => setDate(today)}
+              accessibilityRole="button"
+              accessibilityLabel="Jump to today"
+            >
+              <Text style={styles.todayButtonText}>Today</Text>
+            </PressableScale>
           ) : null}
         </View>
 
@@ -313,6 +378,27 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   streakText: { ...type.label, ...tabular, color: colors.accent, fontWeight: "700" },
+  weekNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  weekArrow: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekLabel: { ...type.label, ...tabular, color: colors.textMuted },
+  todayButton: {
+    marginLeft: "auto",
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentTint,
+  },
+  todayButtonText: { ...type.label, color: colors.accent, fontWeight: "600" },
   dayStrip: { flexDirection: "row", justifyContent: "space-between" },
   dayPill: {
     alignItems: "center",

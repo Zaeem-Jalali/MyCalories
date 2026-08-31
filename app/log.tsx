@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import type { Doc } from "../convex/_generated/dataModel";
+import type { Doc, Id } from "../convex/_generated/dataModel";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
@@ -317,6 +319,24 @@ function ManualTab({
 }) {
   const createLog = useMutation(api.foodLogs.create);
   const createSavedMeal = useMutation(api.savedMeals.create);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const discardUpload = useMutation(api.files.discardUpload);
+  // An uploaded blob that has not been attached to a log yet. Cleaned up when
+  // it is replaced, removed, or the screen closes before saving, so an
+  // abandoned pick does not leave a billable orphan in storage.
+  const pendingUpload = useRef<Id<"_storage"> | null>(null);
+  const discardPending = () => {
+    const orphan = pendingUpload.current;
+    pendingUpload.current = null;
+    if (orphan) {
+      discardUpload({ storageId: orphan }).catch((error) => {
+        // Best-effort cleanup: a failure here only means the orphan lingers.
+        console.warn("Could not discard an unused upload", error);
+      });
+    }
+  };
+  useEffect(() => discardPending, []);
+
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("serving");
@@ -325,10 +345,87 @@ function ManualTab({
   const [carbsG, setCarbsG] = useState("");
   const [fatG, setFatG] = useState("");
   const [saveAsMeal, setSaveAsMeal] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoStorageId, setPhotoStorageId] = useState<Id<"_storage"> | null>(
+    null,
+  );
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const pickPhoto = async (source: "camera" | "library") => {
+    const permission =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", `Allow ${source} access to add a photo.`);
+      return;
+    }
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+        : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    // Drop any previous upload up front: if this pick fails, save() must not
+    // fall back to attaching the earlier photo the user thinks they replaced.
+    discardPending();
+    setPhotoUri(asset.uri);
+    setPhotoStorageId(null);
+    setUploadingPhoto(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const blob = await (await fetch(asset.uri)).blob();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
+        body: blob,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(
+          `Upload failed (${uploadResponse.status}). Check your connection and try again.`,
+        );
+      }
+      const { storageId } = await uploadResponse.json();
+      if (typeof storageId !== "string") {
+        throw new Error("Upload did not return a file id.");
+      }
+      pendingUpload.current = storageId as Id<"_storage">;
+      setPhotoStorageId(storageId as Id<"_storage">);
+    } catch (error) {
+      setPhotoUri(null);
+      setPhotoStorageId(null);
+      Alert.alert(
+        "Couldn't attach the photo",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const choosePhoto = () => {
+    Alert.alert("Add a photo of the meal", undefined, [
+      { text: "Take photo", onPress: () => pickPhoto("camera") },
+      { text: "Choose from library", onPress: () => pickPhoto("library") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const removePhoto = () => {
+    discardPending();
+    setPhotoUri(null);
+    setPhotoStorageId(null);
+  };
 
   const save = async () => {
     if (!name.trim() || !calories) {
       Alert.alert("Name and calories are required");
+      return;
+    }
+    if (uploadingPhoto) {
+      Alert.alert("Photo still uploading", "Give it a second and try again.");
       return;
     }
     const values = {
@@ -340,17 +437,67 @@ function ManualTab({
       carbsG: Number(carbsG) || 0,
       fatG: Number(fatG) || 0,
     };
-    await createLog({ date, source: "manual", ...values });
-    if (saveAsMeal) {
-      await createSavedMeal(values);
+    setSaving(true);
+    try {
+      await createLog({
+        date,
+        source: "manual",
+        photoStorageId: photoStorageId ?? undefined,
+        ...values,
+      });
+    } catch (error) {
+      setSaving(false);
+      Alert.alert(
+        "Couldn't add to the log",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      return;
     }
+    // The photo now belongs to a log row, so it must not be cleaned up as an
+    // orphan when this screen closes.
+    pendingUpload.current = null;
+    // The log row is committed. A failure saving the reusable-meal template
+    // (a text-only copy, no photo) must not read as "the meal wasn't logged"
+    // or the user re-taps and double-logs.
+    if (saveAsMeal) {
+      try {
+        await createSavedMeal(values);
+      } catch (error) {
+        Alert.alert(
+          "Logged, but couldn't save the reusable meal",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
+    }
+    setSaving(false);
     onLogged();
   };
 
   return (
-    <View style={styles.form}>
+    <ScrollView
+      style={styles.formScroll}
+      contentContainerStyle={styles.formContent}
+    >
       <Text style={styles.fieldLabel}>Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} />
+
+      <Text style={styles.fieldLabel}>Photo (optional)</Text>
+      {photoUri ? (
+        <View style={styles.photoRow}>
+          <Image source={{ uri: photoUri }} style={styles.photoThumb} />
+          {uploadingPhoto ? (
+            <ActivityIndicator />
+          ) : (
+            <TouchableOpacity onPress={removePhoto} hitSlop={8}>
+              <Text style={styles.deleteText}>Remove photo</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.secondaryButton} onPress={choosePhoto}>
+          <Text style={styles.secondaryButtonText}>Add a photo</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
@@ -416,10 +563,18 @@ function ManualTab({
         <Text style={styles.checkboxLabel}>Save as a reusable meal</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} onPress={save}>
-        <Text style={styles.saveButtonText}>Add to log</Text>
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={save}
+        disabled={saving}
+      >
+        {saving ? (
+          <ActivityIndicator color={colors.onAccent} />
+        ) : (
+          <Text style={styles.saveButtonText}>Add to log</Text>
+        )}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -447,7 +602,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 4,
   },
   form: { flex: 1, padding: 20, gap: 12 },
+  formScroll: { flex: 1 },
+  formContent: { padding: 20, gap: 12, paddingBottom: 40 },
   row: { flexDirection: "row", gap: 12 },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  photoThumb: { width: 64, height: 64, borderRadius: radii.md },
   fieldLabel: { color: colors.textMuted, marginBottom: 6 },
   input: {
     borderWidth: 1,

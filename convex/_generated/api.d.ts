@@ -21,6 +21,7 @@ import type * as progressPhotos from "../progressPhotos.js";
 import type * as savedMeals from "../savedMeals.js";
 import type * as streak from "../streak.js";
 import type * as users from "../users.js";
+import type * as validators from "../validators.js";
 import type * as vision from "../vision.js";
 import type * as weightLogs from "../weightLogs.js";
 
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   savedMeals: typeof savedMeals;
   streak: typeof streak;
   users: typeof users;
+  validators: typeof validators;
   vision: typeof vision;
   weightLogs: typeof weightLogs;
 }>;
