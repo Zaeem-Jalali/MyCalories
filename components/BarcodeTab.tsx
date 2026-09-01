@@ -15,6 +15,7 @@ import {
 import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, type } from "../constants/theme";
 import { FoodSearchResult, getProductByBarcode } from "../lib/openFoodFacts";
+import { downscaleForVision, VISION_TEXT_WIDTH } from "../lib/prepImage";
 
 export function BarcodeTab({
   date,
@@ -52,12 +53,13 @@ export function BarcodeTab({
         return;
       }
       const asset = result.assets[0];
+      const scaledUri = await downscaleForVision(asset.uri, VISION_TEXT_WIDTH);
 
       const uploadUrl = await generateUploadUrl();
-      const blob = await (await fetch(asset.uri)).blob();
+      const blob = await (await fetch(scaledUri)).blob();
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
+        headers: { "Content-Type": "image/jpeg" },
         body: blob,
       });
       const { storageId } = await uploadResponse.json();
