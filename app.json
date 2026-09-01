@@ -62,7 +62,8 @@
     },
     "owner": "zaeem-jalali",
     "updates": {
-      "url": "https://u.expo.dev/533c3fd9-a778-4cf5-af2b-27dae4235d25"
+      "url": "https://u.expo.dev/533c3fd9-a778-4cf5-af2b-27dae4235d25",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

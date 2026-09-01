@@ -26,6 +26,7 @@ import {
 import { Button } from "./ui/Button";
 import { PressableScale } from "./ui/PressableScale";
 import type { IdentifiedIngredient } from "../convex/vision";
+import { downscaleForVision, VISION_FOOD_WIDTH } from "../lib/prepImage";
 
 type EditableIngredient = IdentifiedIngredient & { include: boolean };
 
@@ -88,13 +89,16 @@ export function PhotoTab({
     setAnalyzing(true);
 
     try {
+      const scaledUri = await downscaleForVision(asset.uri, VISION_FOOD_WIDTH);
+      setPhotoUri(scaledUri);
+
       const uploadUrl = await generateUploadUrl();
-      const response = await fetch(asset.uri);
+      const response = await fetch(scaledUri);
       const blob = await response.blob();
 
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
+        headers: { "Content-Type": "image/jpeg" },
         body: blob,
       });
       if (!uploadResponse.ok) {

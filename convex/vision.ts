@@ -105,7 +105,14 @@ async function callVisionModel<T>(
             ],
           },
         ],
-        generationConfig: { responseMimeType: "application/json" },
+        // "low" is the extraction/classification tier. Food identification and
+        // label reading are structured extraction, not open reasoning, so the
+        // default (medium) budget mostly adds latency. This is the single
+        // biggest lever on how long the user waits after taking a photo.
+        generationConfig: {
+          responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       }),
     },
   );

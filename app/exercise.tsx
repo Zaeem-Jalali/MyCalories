@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
 import { colors, radii, spacing, tabular, type } from "../constants/theme";
 import { dateFromKey, formatDateLabel, todayKey } from "../lib/dateKey";
+import { downscaleForVision, VISION_TEXT_WIDTH } from "../lib/prepImage";
 import { Button } from "../components/ui/Button";
 import { Chip } from "../components/ui/Chip";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -166,12 +167,13 @@ function ExerciseScreenContent() {
     setReadingSchedule(true);
 
     try {
+      const scaledUri = await downscaleForVision(asset.uri, VISION_TEXT_WIDTH);
       const uploadUrl = await generateUploadUrl();
-      const response = await fetch(asset.uri);
+      const response = await fetch(scaledUri);
       const blob = await response.blob();
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": asset.mimeType ?? "image/jpeg" },
+        headers: { "Content-Type": "image/jpeg" },
         body: blob,
       });
       if (!uploadResponse.ok) {

@@ -3,11 +3,11 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors } from "../constants/theme";
+import { BrandLoading } from "../components/ui/BrandLoading";
 import { convex } from "../lib/convexClient";
 import { secureStorage } from "../lib/secureStorage";
 
@@ -65,21 +65,23 @@ function AuthGate() {
   // throw away navigation state every time the auth state changes.
   return (
     <View style={styles.flex}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "fade",
+          animationDuration: 200,
+        }}
+      >
         <Stack.Screen name="welcome" />
         <Stack.Screen name="signIn" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="log" options={{ presentation: "modal" }} />
-        <Stack.Screen name="exercise" options={{ presentation: "modal" }} />
+        <Stack.Screen name="log" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="exercise" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="mealDetail" />
         <Stack.Screen name="monthlyReport" />
       </Stack>
-      {isLoading || profileLoading ? (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator />
-        </View>
-      ) : null}
+      {isLoading || profileLoading ? <BrandLoading /> : null}
     </View>
   );
 }
@@ -97,10 +99,4 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
 });
