@@ -4,13 +4,22 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../components/ui/Button";
-import { colors, motion, radii, spacing, type } from "../constants/theme";
+import { Logomark } from "../components/ui/Logomark";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
+import {
+  motion,
+  spacing,
+  type as typeTokens,
+  type ThemeColors,
+} from "../constants/theme";
 
 // One entrance, choreographed: the mark settles first, the words follow it.
 // Everything is timed against the structural token so this reads as the same
 // system as the rest of the app rather than a one-off intro animation.
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { mode, colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const markOpacity = useRef(new Animated.Value(0)).current;
   const markScale = useRef(new Animated.Value(0.92)).current;
@@ -54,12 +63,13 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.center}>
         <Animated.View
-          style={[
-            styles.mark,
-            { opacity: markOpacity, transform: [{ scale: markScale }] },
-          ]}
+          style={{ opacity: markOpacity, transform: [{ scale: markScale }] }}
         >
-          <Text style={styles.markText}>CA</Text>
+          <Logomark
+            size={76}
+            variant={mode === "dark" ? "reversed" : "onWhite"}
+            notchColor={colors.background}
+          />
         </Animated.View>
 
         <Animated.View
@@ -90,35 +100,22 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  mark: {
-    width: 76,
-    height: 76,
-    borderRadius: radii.lg,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markText: {
-    color: colors.onAccent,
-    fontSize: 28,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
-  title: { ...type.display, color: colors.text, textAlign: "center" },
-  tagline: {
-    ...type.body,
-    color: colors.textMuted,
-    textAlign: "center",
-    marginTop: spacing.sm,
-  },
-  actions: { padding: spacing.lg, gap: spacing.sm },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    title: { ...typeTokens.display, color: c.text, textAlign: "center" },
+    tagline: {
+      ...typeTokens.body,
+      color: c.textMuted,
+      textAlign: "center",
+      marginTop: spacing.sm,
+    },
+    actions: { padding: spacing.lg, gap: spacing.sm },
+  });

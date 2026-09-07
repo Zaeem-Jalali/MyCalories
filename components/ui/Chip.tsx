@@ -1,6 +1,12 @@
 import { StyleSheet, Text } from "react-native";
 
-import { colors, radii, spacing, type } from "../../constants/theme";
+import {
+  radii,
+  spacing,
+  type as typeTokens,
+  type ThemeColors,
+} from "../../constants/theme";
+import { useThemedStyles } from "../ThemeProvider";
 import { PressableScale } from "./PressableScale";
 
 // The one selectable-option control in the app. Goal direction, log tabs,
@@ -23,6 +29,7 @@ export function Chip({
   // food modes); "md" is the default selectable option.
   size?: "sm" | "md";
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <PressableScale
       onPress={onPress}
@@ -49,23 +56,24 @@ export function Chip({
   );
 }
 
-const styles = StyleSheet.create({
-  // Selected is a solid amber fill with white text; unselected is a plain
-  // hairline pill on the background. No tint state, so "chosen" reads at a
-  // glance across a whole row.
-  chip: {
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    justifyContent: "center",
-  },
-  mdSize: { paddingHorizontal: spacing.md, minHeight: 40 },
-  sm: { paddingHorizontal: spacing.sm + 2, minHeight: 38 },
-  inline: { alignSelf: "flex-start" },
-  block: { alignSelf: "stretch", borderRadius: radii.md },
-  selected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  label: { ...type.label, color: colors.text },
-  labelSm: { fontSize: 12.5, fontWeight: "500", color: colors.text },
-  labelSelected: { color: colors.onAccent, fontWeight: "600" },
-});
+// Selected is a solid amber fill with white text; unselected is a plain
+// hairline pill on the background. No tint state, so "chosen" reads at a
+// glance across a whole row.
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    chip: {
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.background,
+      justifyContent: "center",
+    },
+    mdSize: { paddingHorizontal: spacing.md, minHeight: 40 },
+    sm: { paddingHorizontal: spacing.sm + 2, minHeight: 38 },
+    inline: { alignSelf: "flex-start" },
+    block: { alignSelf: "stretch", borderRadius: radii.md },
+    selected: { backgroundColor: c.accent, borderColor: c.accent },
+    label: { ...typeTokens.label, color: c.text },
+    labelSm: { fontSize: 12.5, fontWeight: "500", color: c.text },
+    labelSelected: { color: c.onAccent, fontWeight: "600" },
+  });

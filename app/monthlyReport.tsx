@@ -17,7 +17,14 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 
 import { WeightChart } from "../components/WeightChart";
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import {
+  radii,
+  spacing,
+  tabular,
+  type,
+  type ThemeColors,
+} from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import { Button } from "../components/ui/Button";
 import { PressableScale } from "../components/ui/PressableScale";
 import { todayKey } from "../lib/dateKey";
@@ -44,6 +51,8 @@ type Insights = {
 };
 
 function MonthlyReportContent() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const today = todayKey();
   const [year, setYear] = useState(Number(today.slice(0, 4)));
@@ -288,51 +297,66 @@ export default function MonthlyReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  shareText: { ...type.bodyStrong, color: colors.accent },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
-  monthRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  monthLabel: { ...type.title, color: colors.text },
-  loading: { marginTop: spacing.xl },
-  shot: { gap: spacing.md, backgroundColor: colors.background },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  cardTitle: { ...type.bodyStrong, color: colors.text },
-  bigNumber: { ...type.display, ...tabular, color: colors.text, letterSpacing: -0.5 },
-  bigNumberMuted: { ...type.title, ...tabular, color: colors.textMuted, fontWeight: "400" },
-  bigNumberUnit: { ...type.title, color: colors.textMuted, fontWeight: "400" },
-  iconButton: { padding: spacing.xs, minHeight: 40, justifyContent: "center" },
-  muted: { ...type.label, color: colors.textMuted },
-  foodValue: { ...type.label, ...tabular, color: colors.textMuted },
-  body: { ...type.body, color: colors.text },
-  foodRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  foodMain: { flex: 1, gap: 2 },
-  foodName: { ...type.bodyStrong, color: colors.text },
-  listBlock: { marginTop: spacing.sm, gap: 2 },
-  listTitle: { ...type.label, color: colors.accent },
-  listItem: { ...type.body, color: colors.text },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    shareText: { ...type.bodyStrong, color: c.accent },
+    content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
+    monthRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    monthLabel: { ...type.title, color: c.text },
+    loading: { marginTop: spacing.xl },
+    shot: { gap: spacing.md, backgroundColor: c.background },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radii.lg,
+      padding: spacing.md,
+      gap: spacing.xs,
+    },
+    cardTitle: { ...type.bodyStrong, color: c.text },
+    bigNumber: {
+      ...type.display,
+      ...tabular,
+      color: c.text,
+      letterSpacing: -0.5,
+    },
+    bigNumberMuted: {
+      ...type.title,
+      ...tabular,
+      color: c.textMuted,
+      fontWeight: "400",
+    },
+    bigNumberUnit: { ...type.title, color: c.textMuted, fontWeight: "400" },
+    iconButton: {
+      padding: spacing.xs,
+      minHeight: 40,
+      justifyContent: "center",
+    },
+    muted: { ...type.label, color: c.textMuted },
+    foodValue: { ...type.label, ...tabular, color: c.textMuted },
+    body: { ...type.body, color: c.text },
+    foodRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    foodMain: { flex: 1, gap: 2 },
+    foodName: { ...type.bodyStrong, color: c.text },
+    listBlock: { marginTop: spacing.sm, gap: 2 },
+    listTitle: { ...type.label, color: c.accent },
+    listItem: { ...type.body, color: c.text },
+  });

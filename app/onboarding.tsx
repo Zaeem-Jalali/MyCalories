@@ -14,7 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { radii, spacing, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import { UnitToggle } from "../components/UnitToggle";
 import { todayKey } from "../lib/dateKey";
 import { Authenticated } from "convex/react";
@@ -25,12 +26,24 @@ import {
   computeGoals,
 } from "../lib/goalCalculator";
 
-const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
+const ACTIVITY_OPTIONS: {
+  value: ActivityLevel;
+  label: string;
+  hint: string;
+}[] = [
   { value: "sedentary", label: "Sedentary", hint: "Little to no exercise" },
   { value: "light", label: "Lightly active", hint: "1-3 workouts a week" },
-  { value: "moderate", label: "Moderately active", hint: "3-5 workouts a week" },
+  {
+    value: "moderate",
+    label: "Moderately active",
+    hint: "3-5 workouts a week",
+  },
   { value: "active", label: "Active", hint: "6-7 workouts a week" },
-  { value: "very_active", label: "Very active", hint: "Physical job or training twice a day" },
+  {
+    value: "very_active",
+    label: "Very active",
+    hint: "Physical job or training twice a day",
+  },
 ];
 
 const RATE_OPTIONS = [0.5, 1, 1.5, 2];
@@ -44,6 +57,8 @@ function round1(value: number): number {
 }
 
 function OnboardingScreenContent() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const isEditing = edit === "1";
@@ -129,7 +144,9 @@ function OnboardingScreenContent() {
     ? [...steps]
     : steps.filter((s) => s !== "rate");
   const visibleIndex = visibleSteps.indexOf(currentStepKey);
-  const questionSteps = visibleSteps.filter((s) => s !== "welcome" && s !== "review");
+  const questionSteps = visibleSteps.filter(
+    (s) => s !== "welcome" && s !== "review",
+  );
 
   const goNext = () => {
     const nextIndex = steps.indexOf(currentStepKey) + 1;
@@ -506,9 +523,7 @@ function OnboardingScreenContent() {
                   <Text style={styles.reviewRowName}>{label}</Text>
                   <Text style={styles.reviewRowValue}>{grams} g</Text>
                   <Text style={styles.reviewRowPct}>
-                    {Math.round(
-                      ((grams * kcalPerG) / goals.calorieGoal) * 100,
-                    )}
+                    {Math.round(((grams * kcalPerG) / goals.calorieGoal) * 100)}
                     %
                   </Text>
                 </View>
@@ -542,6 +557,7 @@ function Step({
   subtitle?: string;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={{ gap: spacing.lg }}>
       <View>
@@ -562,6 +578,7 @@ function Chip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       style={[styles.chip, selected && styles.chipSelected]}
@@ -574,142 +591,143 @@ function Chip({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { alignItems: "center", justifyContent: "center" },
-  welcomeContent: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
-  },
-  welcomeTitle: { ...type.display, fontSize: 40, color: colors.text },
-  welcomeSubtitle: { ...type.body, color: colors.textMuted, maxWidth: 320 },
-  progressHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  backArrow: { fontSize: 20, color: colors.text },
-  progressTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: radii.pill,
-    backgroundColor: colors.border,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
-  },
-  content: {
-    padding: spacing.lg,
-    flexGrow: 1,
-    justifyContent: "center",
-  },
-  stepTitle: { ...type.display, color: colors.text },
-  stepSubtitle: { ...type.body, color: colors.textMuted, marginTop: spacing.sm },
-  chipRow: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
-  chip: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipSelected: {
-    backgroundColor: colors.accentTint,
-    borderColor: colors.accent,
-  },
-  chipText: { ...type.bodyStrong, color: colors.text },
-  chipTextSelected: { color: colors.accent },
-  row: { flexDirection: "row", gap: spacing.sm },
-  bigInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 22,
-    fontWeight: "600",
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  fieldLabel: {
-    ...type.label,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  optionRow: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  optionRowSelected: {
-    backgroundColor: colors.accentTint,
-    borderColor: colors.accent,
-  },
-  optionLabel: { ...type.bodyStrong, color: colors.text },
-  optionHint: { ...type.label, color: colors.textMuted, marginTop: 2 },
-  reviewCard: {
-    backgroundColor: colors.accentTint,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm + 4,
-  },
-  reviewLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    color: colors.accent,
-  },
-  reviewValue: {
-    fontSize: 52,
-    fontWeight: "600",
-    letterSpacing: -1.5,
-    color: colors.text,
-  },
-  reviewRows: { gap: spacing.sm, marginTop: spacing.sm + 4 },
-  reviewRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm + 4,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: spacing.md,
-  },
-  reviewRowDot: { width: 8, height: 8, borderRadius: 4 },
-  reviewRowName: { ...type.body, color: colors.text, flex: 1 },
-  reviewRowValue: { ...type.bodyStrong, color: colors.text },
-  reviewRowPct: { ...type.label, color: colors.textMuted },
-  footer: { padding: spacing.lg },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  buttonDisabled: { opacity: 0.4 },
-  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    loading: { alignItems: "center", justifyContent: "center" },
+    welcomeContent: {
+      flex: 1,
+      justifyContent: "center",
+      paddingHorizontal: spacing.xl,
+      gap: spacing.md,
+    },
+    welcomeTitle: { ...type.display, fontSize: 40, color: c.text },
+    welcomeSubtitle: { ...type.body, color: c.textMuted, maxWidth: 320 },
+    progressHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    backArrow: { fontSize: 20, color: c.text },
+    progressTrack: {
+      flex: 1,
+      height: 6,
+      borderRadius: radii.pill,
+      backgroundColor: c.border,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      borderRadius: radii.pill,
+      backgroundColor: c.accent,
+    },
+    content: {
+      padding: spacing.lg,
+      flexGrow: 1,
+      justifyContent: "center",
+    },
+    stepTitle: { ...type.display, color: c.text },
+    stepSubtitle: { ...type.body, color: c.textMuted, marginTop: spacing.sm },
+    chipRow: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
+    chip: {
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderRadius: radii.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    chipSelected: {
+      backgroundColor: c.accentTint,
+      borderColor: c.accent,
+    },
+    chipText: { ...type.bodyStrong, color: c.text },
+    chipTextSelected: { color: c.accent },
+    row: { flexDirection: "row", gap: spacing.sm },
+    bigInput: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontSize: 22,
+      fontWeight: "600",
+      color: c.text,
+      backgroundColor: c.surface,
+    },
+    fieldLabel: {
+      ...type.label,
+      color: c.textMuted,
+      marginTop: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      fontSize: 16,
+      color: c.text,
+      backgroundColor: c.surface,
+    },
+    optionRow: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.md,
+      padding: spacing.md,
+      backgroundColor: c.surface,
+    },
+    optionRowSelected: {
+      backgroundColor: c.accentTint,
+      borderColor: c.accent,
+    },
+    optionLabel: { ...type.bodyStrong, color: c.text },
+    optionHint: { ...type.label, color: c.textMuted, marginTop: 2 },
+    reviewCard: {
+      backgroundColor: c.accentTint,
+      borderRadius: radii.lg,
+      padding: spacing.lg,
+      gap: spacing.sm + 4,
+    },
+    reviewLabel: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+      color: c.accent,
+    },
+    reviewValue: {
+      fontSize: 52,
+      fontWeight: "600",
+      letterSpacing: -1.5,
+      color: c.text,
+    },
+    reviewRows: { gap: spacing.sm, marginTop: spacing.sm + 4 },
+    reviewRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 4,
+      backgroundColor: c.surface,
+      borderRadius: radii.md,
+      padding: spacing.md,
+    },
+    reviewRowDot: { width: 8, height: 8, borderRadius: 4 },
+    reviewRowName: { ...type.body, color: c.text, flex: 1 },
+    reviewRowValue: { ...type.bodyStrong, color: c.text },
+    reviewRowPct: { ...type.label, color: c.textMuted },
+    footer: { padding: spacing.lg },
+    primaryButton: {
+      backgroundColor: c.accent,
+      borderRadius: radii.md,
+      paddingVertical: spacing.md,
+      alignItems: "center",
+    },
+    buttonDisabled: { opacity: 0.4 },
+    primaryButtonText: { ...type.bodyStrong, color: c.onAccent },
+  });
 
 // Reads account-scoped data when editing, so it never mounts without a session.
 export default function OnboardingScreen() {

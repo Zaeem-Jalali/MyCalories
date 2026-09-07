@@ -1,6 +1,12 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { colors, radii, spacing, type } from "../../constants/theme";
+import {
+  radii,
+  spacing,
+  type as typeTokens,
+  type ThemeColors,
+} from "../../constants/theme";
+import { useTheme, useThemedStyles } from "../ThemeProvider";
 import { PressableScale } from "./PressableScale";
 
 type Variant = "primary" | "secondary";
@@ -25,6 +31,8 @@ export function Button({
   accessibilityLabel?: string;
   fullWidth?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const isPrimary = variant === "primary";
   return (
     <PressableScale
@@ -61,24 +69,25 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: radii.md,
-    paddingVertical: spacing.md - 2,
-    paddingHorizontal: spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-  },
-  auto: { alignSelf: "flex-start" },
-  primary: { backgroundColor: colors.accent },
-  secondary: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inner: { minHeight: 20, justifyContent: "center" },
-  label: { ...type.bodyStrong },
-  labelPrimary: { color: colors.onAccent },
-  labelSecondary: { color: colors.text },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    base: {
+      borderRadius: radii.md,
+      paddingVertical: spacing.md - 2,
+      paddingHorizontal: spacing.md,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 48,
+    },
+    auto: { alignSelf: "flex-start" },
+    primary: { backgroundColor: c.accent },
+    secondary: {
+      backgroundColor: c.background,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    inner: { minHeight: 20, justifyContent: "center" },
+    label: { ...typeTokens.bodyStrong },
+    labelPrimary: { color: c.onAccent },
+    labelSecondary: { color: c.text },
+  });

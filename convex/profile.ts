@@ -72,3 +72,22 @@ export const upsert = mutation({
     return await ctx.db.insert("profile", { ...args, userId });
   },
 });
+
+// Kept separate from `upsert` so switching theme never runs the goal
+// recompute or the safety-floor check.
+export const setTheme = mutation({
+  args: { theme: v.union(v.literal("light"), v.literal("dark")) },
+  handler: async (ctx, { theme }) => {
+    const userId = await requireUserId(ctx);
+    const existing = await ctx.db
+      .query("profile")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!existing) {
+      throw new Error(
+        "No profile yet. Finish onboarding before setting a theme.",
+      );
+    }
+    await ctx.db.patch(existing._id, { theme });
+  },
+});

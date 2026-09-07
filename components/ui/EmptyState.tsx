@@ -1,6 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors, radii, spacing, type } from "../../constants/theme";
+import {
+  radii,
+  spacing,
+  type as typeTokens,
+  type ThemeColors,
+} from "../../constants/theme";
+import { useThemedStyles } from "../ThemeProvider";
 import { Button } from "./Button";
 
 // An empty state is an invitation, not a dead end. Every "nothing here yet"
@@ -15,6 +21,7 @@ export function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.container}>
       <Text style={styles.message}>{message}</Text>
@@ -25,21 +32,22 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.border,
-  },
-  message: {
-    ...type.body,
-    color: colors.textMuted,
-    textAlign: "center",
-    maxWidth: 320,
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderStyle: "dashed",
+      borderColor: c.border,
+    },
+    message: {
+      ...typeTokens.body,
+      color: c.textMuted,
+      textAlign: "center",
+      maxWidth: 320,
+    },
+  });

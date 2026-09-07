@@ -17,12 +17,13 @@ import type { Id } from "../convex/_generated/dataModel";
 import {
   card,
   cardTight,
-  colors,
   radii,
   spacing,
   tabular,
   type,
+  type ThemeColors,
 } from "../constants/theme";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
 import { Button } from "./ui/Button";
 import { PressableScale } from "./ui/PressableScale";
 import type { IdentifiedIngredient } from "../convex/vision";
@@ -49,6 +50,7 @@ export function PhotoTab({
   date: string;
   onLogged: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const identifyFood = useAction(api.vision.identifyFood);
   const createLog = useMutation(api.foodLogs.create);
@@ -331,9 +333,7 @@ export function PhotoTab({
                     <ItemField
                       label="kcal"
                       value={item.calories}
-                      onChange={(n) =>
-                        updateIngredient(index, { calories: n })
-                      }
+                      onChange={(n) => updateIngredient(index, { calories: n })}
                     />
                     <ItemField
                       label="protein"
@@ -410,6 +410,7 @@ function ItemField({
   value: number;
   onChange: (value: number) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -423,168 +424,181 @@ function ItemField({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { flex: 1 },
-  scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.md },
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    wrap: { flex: 1 },
+    scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.md },
 
-  pickerContainer: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.sm + 4,
-    justifyContent: "center",
-  },
-  viewfinder: {
-    ...cardTight,
-    backgroundColor: colors.surface,
-    minHeight: 220,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  viewfinderFrame: {
-    width: 44,
-    height: 36,
-    borderRadius: radii.sm,
-    borderWidth: 1.5,
-    borderColor: colors.textMuted,
-  },
-  viewfinderHint: { ...type.label, color: colors.textMuted },
-  hint: { ...type.body, color: colors.textMuted, textAlign: "center" },
-  loadingRow: {
-    flexDirection: "row",
-    gap: spacing.sm + 2,
-    alignItems: "center",
-  },
+    pickerContainer: {
+      flex: 1,
+      padding: spacing.lg,
+      gap: spacing.sm + 4,
+      justifyContent: "center",
+    },
+    viewfinder: {
+      ...cardTight(c),
+      backgroundColor: c.surface,
+      minHeight: 220,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    viewfinderFrame: {
+      width: 44,
+      height: 36,
+      borderRadius: radii.sm,
+      borderWidth: 1.5,
+      borderColor: c.textMuted,
+    },
+    viewfinderHint: { ...type.label, color: c.textMuted },
+    hint: { ...type.body, color: c.textMuted, textAlign: "center" },
+    loadingRow: {
+      flexDirection: "row",
+      gap: spacing.sm + 2,
+      alignItems: "center",
+    },
 
-  reviewHead: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
-  thumb: {
-    width: 80,
-    height: 80,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-  },
-  reviewHeadMain: { flex: 1, gap: spacing.sm },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  mealNameInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    minHeight: 44,
-    ...type.body,
-    color: colors.text,
-  },
-  mealNamePlaceholder: {
-    height: 44,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-  },
-  retake: { ...type.label, color: colors.accent, fontWeight: "600" },
+    reviewHead: {
+      flexDirection: "row",
+      gap: spacing.md,
+      alignItems: "flex-start",
+    },
+    thumb: {
+      width: 80,
+      height: 80,
+      borderRadius: radii.md,
+      backgroundColor: c.surface,
+    },
+    reviewHeadMain: { flex: 1, gap: spacing.sm },
+    eyebrow: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    mealNameInput: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.md,
+      paddingHorizontal: spacing.md,
+      minHeight: 44,
+      ...type.body,
+      color: c.text,
+    },
+    mealNamePlaceholder: {
+      height: 44,
+      borderRadius: radii.md,
+      backgroundColor: c.surface,
+    },
+    retake: { ...type.label, color: c.accent, fontWeight: "600" },
 
-  itemsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-  sectionTitle: { ...type.bodyStrong, fontSize: 17, color: colors.text },
-  sectionNote: { fontSize: 12.5, color: colors.textMuted },
+    itemsHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    },
+    sectionTitle: { ...type.bodyStrong, fontSize: 17, color: c.text },
+    sectionNote: { fontSize: 12.5, color: c.textMuted },
 
-  itemList: { gap: spacing.sm },
-  itemCard: { ...cardTight, padding: spacing.md, gap: spacing.sm + 4 },
-  itemCardOff: { backgroundColor: colors.surface },
-  itemTop: { flexDirection: "row", gap: spacing.sm + 4, alignItems: "flex-start" },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.sm,
-    borderWidth: 1.5,
-    borderColor: colors.track,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  checkboxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  checkMark: { color: colors.onAccent, fontSize: 13, fontWeight: "700" },
-  itemName: { flex: 1, ...type.body, color: colors.text },
-  itemNameOff: { color: colors.textMuted },
+    itemList: { gap: spacing.sm },
+    itemCard: { ...cardTight(c), padding: spacing.md, gap: spacing.sm + 4 },
+    itemCardOff: { backgroundColor: c.surface },
+    itemTop: {
+      flexDirection: "row",
+      gap: spacing.sm + 4,
+      alignItems: "flex-start",
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: radii.sm,
+      borderWidth: 1.5,
+      borderColor: c.track,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 1,
+    },
+    checkboxOn: { backgroundColor: c.accent, borderColor: c.accent },
+    checkMark: { color: c.onAccent, fontSize: 13, fontWeight: "700" },
+    itemName: { flex: 1, ...type.body, color: c.text },
+    itemNameOff: { color: c.textMuted },
 
-  fieldsRow: { flexDirection: "row", gap: spacing.xs + 2 },
-  field: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.xs + 4,
-    paddingTop: 6,
-    paddingBottom: 4,
-  },
-  fieldLabel: {
-    fontSize: 9.5,
-    fontWeight: "500",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  fieldInput: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: colors.text,
-    paddingVertical: 4,
-    ...tabular,
-  },
+    fieldsRow: { flexDirection: "row", gap: spacing.xs + 2 },
+    field: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.xs + 4,
+      paddingTop: 6,
+      paddingBottom: 4,
+    },
+    fieldLabel: {
+      fontSize: 9.5,
+      fontWeight: "500",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    fieldInput: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: c.text,
+      paddingVertical: 4,
+      ...tabular,
+    },
 
-  portionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  portionLabel: { fontSize: 12.5, color: colors.textMuted },
-  stepper: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 2 },
-  stepButton: {
-    width: 44,
-    height: 36,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepGlyph: { fontSize: 17, color: colors.text },
-  stepValue: {
-    minWidth: 60,
-    textAlign: "center",
-    ...type.label,
-    color: colors.text,
-    ...tabular,
-  },
+    portionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    portionLabel: { fontSize: 12.5, color: c.textMuted },
+    stepper: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+    },
+    stepButton: {
+      width: 44,
+      height: 36,
+      borderRadius: radii.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    stepGlyph: { fontSize: 17, color: c.text },
+    stepValue: {
+      minWidth: 60,
+      textAlign: "center",
+      ...type.label,
+      color: c.text,
+      ...tabular,
+    },
 
-  footer: {
-    ...card,
-    borderRadius: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    padding: spacing.lg,
-    paddingBottom: spacing.lg + 6,
-    gap: spacing.sm + 4,
-  },
-  footerTop: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-  },
-  footerCount: { ...type.body, color: colors.textMuted },
-  footerTotal: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: colors.text,
-    ...tabular,
-  },
-});
+    footer: {
+      ...card(c),
+      borderRadius: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
+      padding: spacing.lg,
+      paddingBottom: spacing.lg + 6,
+      gap: spacing.sm + 4,
+    },
+    footerTop: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+    },
+    footerCount: { ...type.body, color: c.textMuted },
+    footerTotal: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: c.text,
+      ...tabular,
+    },
+  });

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Authenticated } from "convex/react";
 import { Tabs } from "expo-router";
 
-import { colors } from "../../constants/theme";
+import { useTheme } from "../../components/ThemeProvider";
 
 // Every screen under here reads account-scoped data, so none of them mount
 // until there is a session. Without this the queries fire during sign-out and
@@ -16,13 +16,17 @@ export default function TabsLayout() {
 }
 
 function TabsNavigator() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { borderTopColor: colors.border },
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+        },
       }}
     >
       <Tabs.Screen

@@ -21,13 +21,14 @@ import { api } from "../../convex/_generated/api";
 import {
   card,
   cardTight,
-  colors,
   elevation,
   radii,
   spacing,
   tabular,
   type,
+  type ThemeColors,
 } from "../../constants/theme";
+import { useTheme, useThemedStyles } from "../../components/ThemeProvider";
 import {
   dateFromKey,
   formatDateLabel,
@@ -81,6 +82,7 @@ function MacroStat({
   goal: number;
   color: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.macroCard}>
       <Text style={styles.macroLabel}>{label}</Text>
@@ -94,6 +96,8 @@ function MacroStat({
 }
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const [date, setDate] = useState(todayKey());
   const totals = useQuery(api.foodLogs.dailyTotals, { date });
@@ -147,7 +151,10 @@ export default function HomeScreen() {
           </Text>
           {streak !== undefined && streak > 0 ? (
             <Animated.View
-              style={[styles.streakPill, { transform: [{ scale: streakScale }] }]}
+              style={[
+                styles.streakPill,
+                { transform: [{ scale: streakScale }] },
+              ]}
               accessibilityLabel={`${streak} day streak`}
             >
               <Ionicons name="flame" size={13} color={colors.accent} />
@@ -218,7 +225,10 @@ export default function HomeScreen() {
                   {DAY_LABELS[d.getDay()]}
                 </Text>
                 <Text
-                  style={[styles.dayNumber, selected && styles.dayLabelSelected]}
+                  style={[
+                    styles.dayNumber,
+                    selected && styles.dayLabelSelected,
+                  ]}
                 >
                   {d.getDate()}
                 </Text>
@@ -244,13 +254,22 @@ export default function HomeScreen() {
           <View style={[styles.calorieCard, styles.calorieCardLoading]}>
             <View style={[styles.skeleton, { width: 96, height: 12 }]} />
             <View
-              style={[styles.skeleton, { width: 180, height: 48, marginTop: 16 }]}
+              style={[
+                styles.skeleton,
+                { width: 180, height: 48, marginTop: 16 },
+              ]}
             />
             <View
-              style={[styles.skeleton, { height: 6, marginTop: 22, width: "100%" }]}
+              style={[
+                styles.skeleton,
+                { height: 6, marginTop: 22, width: "100%" },
+              ]}
             />
             <View
-              style={[styles.skeleton, { width: 120, height: 12, marginTop: 18 }]}
+              style={[
+                styles.skeleton,
+                { width: 120, height: 12, marginTop: 18 },
+              ]}
             />
           </View>
         ) : (
@@ -288,15 +307,15 @@ export default function HomeScreen() {
 
         <PressableScale
           style={styles.exerciseRow}
-          onPress={() => router.push({ pathname: "/exercise", params: { date } })}
+          onPress={() =>
+            router.push({ pathname: "/exercise", params: { date } })
+          }
           accessibilityRole="button"
           accessibilityLabel="Log exercise"
         >
           <Ionicons name="walk-outline" size={18} color={colors.accent} />
           <Text style={styles.exerciseText}>
-            {burned
-              ? `${burned} kcal from exercise`
-              : "Log today's exercise"}
+            {burned ? `${burned} kcal from exercise` : "Log today's exercise"}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </PressableScale>
@@ -337,7 +356,9 @@ export default function HomeScreen() {
               <View key={i} style={styles.logRow}>
                 <View style={[styles.logThumb, styles.skeleton]} />
                 <View style={styles.logMain}>
-                  <View style={[styles.skeleton, { height: 14, width: "70%" }]} />
+                  <View
+                    style={[styles.skeleton, { height: 14, width: "70%" }]}
+                  />
                 </View>
                 <View style={[styles.skeleton, { height: 12, width: 40 }]} />
               </View>
@@ -347,9 +368,7 @@ export default function HomeScreen() {
           <EmptyState
             message="Nothing logged for this day yet. Photograph a plate and each item gets its own portion estimate to check."
             actionLabel="Log food"
-            onAction={() =>
-              router.push({ pathname: "/log", params: { date } })
-            }
+            onAction={() => router.push({ pathname: "/log", params: { date } })}
           />
         ) : (
           <View style={styles.logList}>
@@ -419,223 +438,228 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  centered: { alignItems: "center", justifyContent: "center" },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 120 },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: { ...type.title, fontSize: 24, color: colors.text },
-  streakPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs + 2,
-    backgroundColor: colors.accentTint,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.pill,
-  },
-  streakText: {
-    ...type.label,
-    ...tabular,
-    color: colors.accent,
-    fontWeight: "600",
-  },
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    centered: { alignItems: "center", justifyContent: "center" },
+    content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 120 },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    title: { ...type.title, fontSize: 24, color: c.text },
+    streakPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      backgroundColor: c.accentTint,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+      borderRadius: radii.pill,
+    },
+    streakText: {
+      ...type.label,
+      ...tabular,
+      color: c.accent,
+      fontWeight: "600",
+    },
 
-  weekNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  weekArrow: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  weekLabel: { ...type.label, ...tabular, color: colors.textMuted },
-  todayButton: {
-    marginLeft: "auto",
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentTint,
-  },
-  todayButtonText: { ...type.label, color: colors.accent, fontWeight: "600" },
+    weekNav: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    weekArrow: {
+      width: 32,
+      height: 32,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    weekLabel: { ...type.label, ...tabular, color: c.textMuted },
+    todayButton: {
+      marginLeft: "auto",
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+      borderRadius: radii.pill,
+      backgroundColor: c.accentTint,
+    },
+    todayButtonText: { ...type.label, color: c.accent, fontWeight: "600" },
 
-  // Pulled wider than the page inset so seven tiles fill the row instead of
-  // sitting as a narrow band in the middle.
-  dayStrip: {
-    flexDirection: "row",
-    gap: 5,
-    // Pulled out past the page inset so seven tiles span the row instead of
-    // sitting as a narrow band.
-    marginHorizontal: -spacing.md,
-  },
-  dayPill: {
-    alignItems: "center",
-    gap: 3,
-    minHeight: 56,
-    paddingVertical: spacing.sm,
-    justifyContent: "center",
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  dayPillSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  dayLabel: { fontSize: 10.5, color: colors.textMuted },
-  dayLabelSelected: { color: colors.onAccent },
-  dayNumber: { fontSize: 15, fontWeight: "600", color: colors.text, ...tabular },
-  dayDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    marginTop: 1,
-    backgroundColor: colors.border,
-  },
-  dayDotToday: { backgroundColor: colors.accent },
-  dayDotSelected: { backgroundColor: "rgba(255,255,255,0.6)" },
+    // Pulled wider than the page inset so seven tiles fill the row instead of
+    // sitting as a narrow band in the middle.
+    dayStrip: {
+      flexDirection: "row",
+      gap: 5,
+      // Pulled out past the page inset so seven tiles span the row instead of
+      // sitting as a narrow band.
+      marginHorizontal: -spacing.md,
+    },
+    dayPill: {
+      alignItems: "center",
+      gap: 3,
+      minHeight: 56,
+      paddingVertical: spacing.sm,
+      justifyContent: "center",
+      borderRadius: radii.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.background,
+    },
+    dayPillSelected: {
+      backgroundColor: c.accent,
+      borderColor: c.accent,
+    },
+    dayLabel: { fontSize: 10.5, color: c.textMuted },
+    dayLabelSelected: { color: c.onAccent },
+    dayNumber: { fontSize: 15, fontWeight: "600", color: c.text, ...tabular },
+    dayDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      marginTop: 1,
+      backgroundColor: c.border,
+    },
+    dayDotToday: { backgroundColor: c.accent },
+    dayDotSelected: { backgroundColor: "rgba(255,255,255,0.6)" },
 
-  calorieCard: { ...card, padding: spacing.lg, paddingBottom: spacing.md + 4 },
-  calorieCardLoading: { opacity: 0.9 },
-  calorieTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-  calorieLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  calorieGoal: { ...type.label, color: colors.textMuted, ...tabular },
-  calorieValueRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: spacing.sm,
-    marginTop: spacing.sm + 2,
-  },
-  calorieValue: { ...type.hero, color: colors.text, ...tabular },
-  calorieUnit: {
-    ...type.body,
-    color: colors.textMuted,
-    paddingBottom: 8,
-  },
-  calorieTrack: { marginTop: spacing.md + 4 },
-  calorieBottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.md - 2,
-  },
-  calorieRemaining: {
-    ...type.bodyStrong,
-    fontSize: 15,
-    color: colors.text,
-    ...tabular,
-  },
-  calorieOver: { color: colors.danger },
-  caloriePct: { ...type.label, color: colors.textMuted, ...tabular },
+    calorieCard: {
+      ...card(c),
+      padding: spacing.lg,
+      paddingBottom: spacing.md + 4,
+    },
+    calorieCardLoading: { opacity: 0.9 },
+    calorieTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    },
+    calorieLabel: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    calorieGoal: { ...type.label, color: c.textMuted, ...tabular },
+    calorieValueRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: spacing.sm,
+      marginTop: spacing.sm + 2,
+    },
+    calorieValue: { ...type.hero, color: c.text, ...tabular },
+    calorieUnit: {
+      ...type.body,
+      color: c.textMuted,
+      paddingBottom: 8,
+    },
+    calorieTrack: { marginTop: spacing.md + 4 },
+    calorieBottomRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: spacing.md - 2,
+    },
+    calorieRemaining: {
+      ...type.bodyStrong,
+      fontSize: 15,
+      color: c.text,
+      ...tabular,
+    },
+    calorieOver: { color: c.danger },
+    caloriePct: { ...type.label, color: c.textMuted, ...tabular },
 
-  exerciseRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm + 4,
-    paddingHorizontal: spacing.md,
-    minHeight: 52,
-  },
-  exerciseText: { ...type.body, color: colors.text, flex: 1 },
+    exerciseRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: c.surface,
+      borderRadius: radii.md,
+      paddingVertical: spacing.sm + 4,
+      paddingHorizontal: spacing.md,
+      minHeight: 52,
+    },
+    exerciseText: { ...type.body, color: c.text, flex: 1 },
 
-  macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
-  macroCard: { ...cardTight, flex: 1, padding: spacing.sm + 4 },
-  macroLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  macroValue: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: colors.text,
-    letterSpacing: -0.4,
-    marginTop: spacing.sm + 2,
-    ...tabular,
-  },
-  macroGoal: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 5,
-    ...tabular,
-  },
-  macroTrack: { marginTop: spacing.sm + 4 },
+    macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
+    macroCard: { ...cardTight(c), flex: 1, padding: spacing.sm + 4 },
+    macroLabel: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    macroValue: {
+      fontSize: 22,
+      fontWeight: "600",
+      color: c.text,
+      letterSpacing: -0.4,
+      marginTop: spacing.sm + 2,
+      ...tabular,
+    },
+    macroGoal: {
+      fontSize: 12,
+      color: c.textMuted,
+      marginTop: 5,
+      ...tabular,
+    },
+    macroTrack: { marginTop: spacing.sm + 4 },
 
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    marginTop: spacing.sm + 4,
-  },
-  sectionTitle: { ...type.bodyStrong, fontSize: 17, color: colors.text },
-  sectionCount: { ...type.label, color: colors.textMuted, ...tabular },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginTop: spacing.sm + 4,
+    },
+    sectionTitle: { ...type.bodyStrong, fontSize: 17, color: c.text },
+    sectionCount: { ...type.label, color: c.textMuted, ...tabular },
 
-  logList: { gap: spacing.sm },
-  logRow: {
-    ...cardTight,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm + 4,
-    padding: spacing.sm + 4,
-  },
-  logThumb: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-  },
-  logThumbEmpty: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  logMain: { flex: 1, gap: 4 },
-  logName: { ...type.body, color: colors.text },
-  logMeta: { fontSize: 12.5, color: colors.textMuted, ...tabular },
-  logValueGroup: { alignItems: "flex-end", gap: 4 },
-  logCalories: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: colors.text,
-    ...tabular,
-  },
-  logCaloriesUnit: { fontSize: 11, color: colors.textMuted },
+    logList: { gap: spacing.sm },
+    logRow: {
+      ...cardTight(c),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 4,
+      padding: spacing.sm + 4,
+    },
+    logThumb: {
+      width: 52,
+      height: 52,
+      borderRadius: radii.sm,
+      backgroundColor: c.surface,
+    },
+    logThumbEmpty: {
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    logMain: { flex: 1, gap: 4 },
+    logName: { ...type.body, color: c.text },
+    logMeta: { fontSize: 12.5, color: c.textMuted, ...tabular },
+    logValueGroup: { alignItems: "flex-end", gap: 4 },
+    logCalories: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: c.text,
+      ...tabular,
+    },
+    logCaloriesUnit: { fontSize: 11, color: c.textMuted },
 
-  skeleton: { backgroundColor: colors.surface, borderRadius: radii.sm },
+    skeleton: { backgroundColor: c.surface, borderRadius: radii.sm },
 
-  fab: {
-    position: "absolute",
-    right: spacing.lg,
-    bottom: spacing.lg + 8,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    ...elevation.floating,
-  },
-});
+    fab: {
+      position: "absolute",
+      right: spacing.lg,
+      bottom: spacing.lg + 8,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      ...elevation(c).floating,
+    },
+  });

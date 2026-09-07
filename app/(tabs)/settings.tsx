@@ -17,16 +17,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../convex/_generated/api";
-import { card, colors, radii, spacing, tabular, type } from "../../constants/theme";
+import {
+  card,
+  radii,
+  spacing,
+  tabular,
+  type as typeTokens,
+  type ThemeColors,
+  type ThemeMode,
+} from "../../constants/theme";
 import { Button } from "../../components/ui/Button";
 import { Chip } from "../../components/ui/Chip";
 import { PressableScale } from "../../components/ui/PressableScale";
+import { useTheme, useThemedStyles } from "../../components/ThemeProvider";
 import {
   cancelDailyReminder,
   getDailyReminderTime,
   setDailyReminder,
 } from "../../lib/notifications";
 import { computeGoals } from "../../lib/goalCalculator";
+import { clearCachedThemeMode } from "../../lib/themeCache";
 
 // A cut or bulk with no saved pace defaults here, matching onboarding's
 // starting pick. The full pace control lives in "Edit profile answers".
@@ -45,9 +55,20 @@ const REMINDER_TIMES = [
   { hour: 20, label: "8 PM" },
 ];
 
+const THEME_OPTIONS: { mode: ThemeMode; label: string }[] = [
+  { mode: "light", label: "Light" },
+  { mode: "dark", label: "Dark" },
+];
+const THEME_HINT: Record<ThemeMode, string> = {
+  light: "Warm paper",
+  dark: "Warm charcoal",
+};
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuthActions();
+  const { colors, mode: themeMode, setMode: setThemeMode } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useQuery(api.profile.get, {});
   const account = useQuery(api.users.current, {});
   const weightLogs = useQuery(api.weightLogs.list, {});
@@ -188,6 +209,9 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: async () => {
           try {
+            // Drop the on-device theme hint so the next account on this device
+            // does not inherit this one's choice as its default.
+            await clearCachedThemeMode();
             await signOut();
           } catch (error) {
             Alert.alert(
@@ -226,6 +250,46 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Settings</Text>
+
+        <View style={styles.appearanceCard}>
+          <View style={styles.appearanceHead}>
+            <Text style={styles.sectionTitle}>Appearance</Text>
+            <Text style={styles.appearanceHint}>{THEME_HINT[themeMode]}</Text>
+          </View>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map((option) => {
+              const on = themeMode === option.mode;
+              return (
+                <PressableScale
+                  key={option.mode}
+                  scaleTo={0.98}
+                  flex={1}
+                  onPress={() => setThemeMode(option.mode)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`${option.label} theme`}
+                  style={[styles.themeChip, on && styles.themeChipOn]}
+                >
+                  <View
+                    style={[
+                      styles.themeSwatch,
+                      {
+                        backgroundColor:
+                          option.mode === "light" ? "#FFFFFF" : "#131211",
+                        borderColor: on ? colors.onAccentSoft : colors.border,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[styles.themeChipText, on && styles.themeChipTextOn]}
+                  >
+                    {option.label}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={styles.accountCard}>
           <View style={styles.accountHead}>
@@ -282,7 +346,11 @@ export default function SettingsScreen() {
             value={proteinGoalG}
             onChangeText={setProteinGoalG}
           />
-          <Field label="Carbs" value={carbsGoalG} onChangeText={setCarbsGoalG} />
+          <Field
+            label="Carbs"
+            value={carbsGoalG}
+            onChangeText={setCarbsGoalG}
+          />
           <Field label="Fat" value={fatGoalG} onChangeText={setFatGoalG} />
         </View>
 
@@ -331,6 +399,7 @@ function Field({
   value: string;
   onChangeText: (text: string) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -345,78 +414,110 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, gap: spacing.sm + 4, paddingBottom: spacing.xl },
-  title: { ...type.title, fontSize: 24, color: colors.text },
-  sectionTitle: { ...type.bodyStrong, fontSize: 15, color: colors.text },
-  groupTitle: {
-    ...type.bodyStrong,
-    fontSize: 17,
-    color: colors.text,
-    marginTop: spacing.md,
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  directionRow: { flexDirection: "row", gap: spacing.sm },
-  fieldGroup: { gap: spacing.sm },
-  fieldRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingLeft: spacing.md,
-    minHeight: 52,
-  },
-  fieldLabel: { ...type.body, color: colors.textMuted },
-  input: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.text,
-    minWidth: 110,
-    ...tabular,
-  },
-  accountCard: { ...card, overflow: "hidden" },
-  accountHead: {
-    padding: spacing.md,
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  accountEmail: { ...type.body, color: colors.text },
-  accountAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: spacing.sm + 4,
-    paddingHorizontal: spacing.md,
-    minHeight: 52,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  accountActionLast: { borderBottomWidth: 0 },
-  accountActionText: { ...type.body, color: colors.text },
-  signOutText: { ...type.body, color: colors.accent },
-  reminderCard: {
-    ...card,
-    padding: spacing.md,
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  reminderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  reminderTimeRow: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
-  reminderHint: { ...type.label, color: colors.textMuted },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: {
+      padding: spacing.lg,
+      gap: spacing.sm + 4,
+      paddingBottom: spacing.xl,
+    },
+    title: { ...typeTokens.title, fontSize: 24, color: c.text },
+    sectionTitle: { ...typeTokens.bodyStrong, fontSize: 15, color: c.text },
+    groupTitle: {
+      ...typeTokens.bodyStrong,
+      fontSize: 17,
+      color: c.text,
+      marginTop: spacing.md,
+    },
+    eyebrow: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    appearanceCard: { ...card(c), padding: spacing.md, gap: spacing.sm + 4 },
+    appearanceHead: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    appearanceHint: { ...typeTokens.label, color: c.textMuted },
+    themeRow: { flexDirection: "row", gap: spacing.sm },
+    themeChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      minHeight: 44,
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.background,
+    },
+    themeChipOn: { backgroundColor: c.accent, borderColor: c.accent },
+    themeSwatch: { width: 14, height: 14, borderRadius: 999, borderWidth: 1.5 },
+    themeChipText: { ...typeTokens.label, color: c.text },
+    themeChipTextOn: { color: c.onAccent, fontWeight: "600" },
+    directionRow: { flexDirection: "row", gap: spacing.sm },
+    fieldGroup: { gap: spacing.sm },
+    fieldRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.md,
+      paddingLeft: spacing.md,
+      minHeight: 52,
+    },
+    fieldLabel: { ...typeTokens.body, color: c.textMuted },
+    input: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 4,
+      fontSize: 16,
+      fontWeight: "600",
+      color: c.text,
+      minWidth: 110,
+      ...tabular,
+    },
+    accountCard: { ...card(c), overflow: "hidden" },
+    accountHead: {
+      padding: spacing.md,
+      gap: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    accountEmail: { ...typeTokens.body, color: c.text },
+    accountAction: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.sm + 4,
+      paddingHorizontal: spacing.md,
+      minHeight: 52,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    accountActionLast: { borderBottomWidth: 0 },
+    accountActionText: { ...typeTokens.body, color: c.text },
+    signOutText: { ...typeTokens.body, color: c.accent },
+    reminderCard: {
+      ...card(c),
+      padding: spacing.md,
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    reminderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    reminderTimeRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      flexWrap: "wrap",
+    },
+    reminderHint: { ...typeTokens.label, color: c.textMuted },
+  });
