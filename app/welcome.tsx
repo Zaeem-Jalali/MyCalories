@@ -4,7 +4,8 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../components/ui/Button";
-import { colors, motion, radii, spacing, type } from "../constants/theme";
+import { Logomark } from "../components/ui/Logomark";
+import { colors, motion, spacing, type } from "../constants/theme";
 
 // One entrance, choreographed: the mark settles first, the words follow it.
 // Everything is timed against the structural token so this reads as the same
@@ -54,12 +55,9 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <View style={styles.center}>
         <Animated.View
-          style={[
-            styles.mark,
-            { opacity: markOpacity, transform: [{ scale: markScale }] },
-          ]}
+          style={{ opacity: markOpacity, transform: [{ scale: markScale }] }}
         >
-          <Text style={styles.markText}>CA</Text>
+          <Logomark size={76} variant="onWhite" />
         </Animated.View>
 
         <Animated.View
@@ -98,20 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.lg,
     paddingHorizontal: spacing.lg,
-  },
-  mark: {
-    width: 76,
-    height: 76,
-    borderRadius: radii.lg,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markText: {
-    color: colors.onAccent,
-    fontSize: 28,
-    fontWeight: "600",
-    letterSpacing: 1,
   },
   title: { ...type.display, color: colors.text, textAlign: "center" },
   tagline: {

@@ -13,10 +13,9 @@
     "android": {
       "package": "com.zaeemjalali.calorieai",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FBEEDC",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundImage": "./assets/android-icon-background.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -33,6 +32,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FBEEDC",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 150
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "CalorieAI needs access to your photos to log meals from pictures.",
@@ -48,7 +55,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#A15C00"
         }
       ],

@@ -1,8 +1,9 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -10,6 +11,10 @@ import { api } from "../convex/_generated/api";
 import { BrandLoading } from "../components/ui/BrandLoading";
 import { convex } from "../lib/convexClient";
 import { secureStorage } from "../lib/secureStorage";
+
+// Hold the native splash (the static amber frame) until the JS launch sequence
+// has mounted, so the two never show a white frame between them.
+SplashScreen.preventAutoHideAsync();
 
 // The three states the app can be in, and where each one belongs:
 // not signed in goes to the welcome screen, signed in without a finished
@@ -33,6 +38,12 @@ function AuthGate() {
   const onPublicRoute = PUBLIC_ROUTES.includes(route);
   const onOnboarding = route === "onboarding";
   const profileLoading = isAuthenticated && profile === undefined;
+
+  // The launch sequence stays mounted through its own cross-fade, past the
+  // point where auth has settled, so it is torn down by `onHidden` rather than
+  // by this flag flipping.
+  const [launchDone, setLaunchDone] = useState(false);
+  const settling = isLoading || profileLoading;
 
   useEffect(() => {
     if (isLoading || profileLoading) return;
@@ -81,7 +92,12 @@ function AuthGate() {
         <Stack.Screen name="mealDetail" />
         <Stack.Screen name="monthlyReport" />
       </Stack>
-      {isLoading || profileLoading ? <BrandLoading /> : null}
+      {!launchDone ? (
+        <BrandLoading
+          done={!settling}
+          onHidden={() => setLaunchDone(true)}
+        />
+      ) : null}
     </View>
   );
 }

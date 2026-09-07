@@ -17,6 +17,13 @@ export const colors = {
   accent: "#A15C00",
   accentTint: "#FBEEDC",
   onAccent: "#FFFFFF",
+  // A lighter amber that holds up on the ink background. Used only where the
+  // accent has to sit on dark: the reversed logo mark, and any future dark
+  // surface. On light backgrounds always use `accent`.
+  accentOnDark: "#F0B357",
+  // Muted text that reads as the same family as the accent when it sits on the
+  // amber tint (the launch screen). `textMuted` is cooler and goes grey there.
+  accentTintText: "#8A6234",
 
   danger: "#C0392B",
 
