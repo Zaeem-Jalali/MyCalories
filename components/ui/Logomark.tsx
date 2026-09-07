@@ -1,6 +1,6 @@
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 
-import { colors } from "../../constants/theme";
+import { accentOnInk, lightColors } from "../../constants/theme";
 
 // The CalorieAI mark: one shape doing three jobs. A plate seen from above, a
 // camera aperture, and a calorie ring that sits at ~60 percent fill, the same
@@ -29,26 +29,26 @@ const VARIANTS: Record<
 > = {
   // On the amber tint surface (the launch screen).
   primary: {
-    surface: colors.accentTint,
-    arc: colors.accent,
+    surface: lightColors.accentTint,
+    arc: lightColors.accent,
     track: "rgba(161, 92, 0, 0.18)",
   },
   // On the app background.
   onWhite: {
-    surface: colors.background,
-    arc: colors.accent,
+    surface: lightColors.background,
+    arc: lightColors.accent,
     track: "rgba(161, 92, 0, 0.16)",
   },
   // On the ink background.
   reversed: {
-    surface: colors.text,
-    arc: colors.accentOnDark,
+    surface: lightColors.text,
+    arc: accentOnInk,
     track: "rgba(240, 179, 87, 0.22)",
   },
   // Single colour, for stamps and monochrome contexts.
   mono: {
-    surface: colors.background,
-    arc: colors.text,
+    surface: lightColors.background,
+    arc: lightColors.text,
     track: "rgba(28, 27, 26, 0.14)",
   },
 };
@@ -65,12 +65,27 @@ function strokeFor(size: number) {
 // never looks empty.
 function produceFor(size: number) {
   if (size >= 44) {
-    return { apple: { cx: 41, cy: 51, r: 12 }, tomatoR: 8.5, berryR: 6.5, carrot: true };
+    return {
+      apple: { cx: 41, cy: 51, r: 12 },
+      tomatoR: 8.5,
+      berryR: 6.5,
+      carrot: true,
+    };
   }
   if (size >= 22) {
-    return { apple: { cx: 43, cy: 53, r: 13 }, tomatoR: 8.5, berryR: 0, carrot: false };
+    return {
+      apple: { cx: 43, cy: 53, r: 13 },
+      tomatoR: 8.5,
+      berryR: 0,
+      carrot: false,
+    };
   }
-  return { apple: { cx: 47, cy: 54, r: 15 }, tomatoR: 0, berryR: 0, carrot: false };
+  return {
+    apple: { cx: 47, cy: 54, r: 15 },
+    tomatoR: 0,
+    berryR: 0,
+    carrot: false,
+  };
 }
 
 export function Logomark({
@@ -119,7 +134,13 @@ export function Logomark({
         <Path d="M50 37 C52 30 59 26 65 27 C64 34 58 39 51 39 Z" />
         <Circle cx={p.apple.cx} cy={p.apple.cy} r={p.apple.r} />
         {p.tomatoR > 0 ? (
-          <Circle cx={60} cy={55} r={p.tomatoR} stroke={cut} strokeWidth={2.6} />
+          <Circle
+            cx={60}
+            cy={55}
+            r={p.tomatoR}
+            stroke={cut}
+            strokeWidth={2.6}
+          />
         ) : null}
         {p.berryR > 0 ? (
           <Circle cx={52} cy={67} r={p.berryR} stroke={cut} strokeWidth={2.6} />

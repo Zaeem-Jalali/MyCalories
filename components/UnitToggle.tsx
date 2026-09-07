@@ -1,6 +1,11 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { colors, radii, type } from "../constants/theme";
+import {
+  radii,
+  type as typeTokens,
+  type ThemeColors,
+} from "../constants/theme";
+import { useThemedStyles } from "./ThemeProvider";
 
 export function UnitToggle<T extends string>({
   options,
@@ -11,6 +16,7 @@ export function UnitToggle<T extends string>({
   selected: T;
   onSelect: (value: T) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.row}>
       {options.map((option) => {
@@ -33,27 +39,28 @@ export function UnitToggle<T extends string>({
   );
 }
 
-// A segmented control: a quiet surface track with a white pill marking the
-// active unit. Distinct from Chip, which is for content choices, not a
-// two-way unit switch.
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignSelf: "flex-start",
-    gap: 3,
-    padding: 3,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-  },
-  button: {
-    minWidth: 52,
-    minHeight: 32,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonSelected: { backgroundColor: colors.background },
-  text: { ...type.label, color: colors.textMuted },
-  textSelected: { color: colors.text, fontWeight: "600" },
-});
+// A segmented control: a quiet surface track with a pill marking the active
+// unit. Distinct from Chip, which is for content choices, not a two-way
+// unit switch.
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignSelf: "flex-start",
+      gap: 3,
+      padding: 3,
+      borderRadius: radii.pill,
+      backgroundColor: c.surface,
+    },
+    button: {
+      minWidth: 52,
+      minHeight: 32,
+      paddingHorizontal: 14,
+      borderRadius: radii.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    buttonSelected: { backgroundColor: c.card },
+    text: { ...typeTokens.label, color: c.textMuted },
+    textSelected: { color: c.text, fontWeight: "600" },
+  });

@@ -5,13 +5,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../components/ui/Button";
 import { Logomark } from "../components/ui/Logomark";
-import { colors, motion, spacing, type } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
+import {
+  motion,
+  spacing,
+  type as typeTokens,
+  type ThemeColors,
+} from "../constants/theme";
 
 // One entrance, choreographed: the mark settles first, the words follow it.
 // Everything is timed against the structural token so this reads as the same
 // system as the rest of the app rather than a one-off intro animation.
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { mode, colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const markOpacity = useRef(new Animated.Value(0)).current;
   const markScale = useRef(new Animated.Value(0.92)).current;
@@ -57,7 +65,11 @@ export default function WelcomeScreen() {
         <Animated.View
           style={{ opacity: markOpacity, transform: [{ scale: markScale }] }}
         >
-          <Logomark size={76} variant="onWhite" />
+          <Logomark
+            size={76}
+            variant={mode === "dark" ? "reversed" : "onWhite"}
+            notchColor={colors.background}
+          />
         </Animated.View>
 
         <Animated.View
@@ -88,21 +100,22 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  title: { ...type.display, color: colors.text, textAlign: "center" },
-  tagline: {
-    ...type.body,
-    color: colors.textMuted,
-    textAlign: "center",
-    marginTop: spacing.sm,
-  },
-  actions: { padding: spacing.lg, gap: spacing.sm },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    title: { ...typeTokens.display, color: c.text, textAlign: "center" },
+    tagline: {
+      ...typeTokens.body,
+      color: c.textMuted,
+      textAlign: "center",
+      marginTop: spacing.sm,
+    },
+    actions: { padding: spacing.lg, gap: spacing.sm },
+  });

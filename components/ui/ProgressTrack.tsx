@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
-import { colors, radii } from "../../constants/theme";
+import { type ThemeColors } from "../../constants/theme";
+import { useTheme, useThemedStyles } from "../ThemeProvider";
 
 // A percentage against a goal reads faster as a track than as a fraction
 // alone. Ink below the goal, danger once it is passed: semantic color only on
@@ -8,12 +9,13 @@ import { colors, radii } from "../../constants/theme";
 export function ProgressTrack({
   value,
   goal,
-  color = colors.text,
+  color,
   height = 6,
   semantic = false,
 }: {
   value: number;
   goal: number;
+  // Defaults to the theme's ink.
   color?: string;
   height?: number;
   // Only the calorie track flips to danger when the goal is passed. Macro
@@ -22,6 +24,8 @@ export function ProgressTrack({
   // read as the same signal.
   semantic?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const ratio = goal > 0 ? value / goal : 0;
   const over = semantic && ratio > 1;
   const width = `${Math.min(100, Math.max(0, ratio * 100))}%` as const;
@@ -38,7 +42,7 @@ export function ProgressTrack({
           {
             width,
             borderRadius: height / 2,
-            backgroundColor: over ? colors.danger : color,
+            backgroundColor: over ? colors.danger : (color ?? colors.text),
           },
         ]}
       />
@@ -46,7 +50,8 @@ export function ProgressTrack({
   );
 }
 
-const styles = StyleSheet.create({
-  track: { width: "100%", backgroundColor: colors.track, overflow: "hidden" },
-  fill: { height: "100%" },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    track: { width: "100%", backgroundColor: c.track, overflow: "hidden" },
+    fill: { height: "100%" },
+  });

@@ -17,11 +17,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ProgressTrack } from "../components/ui/ProgressTrack";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { card, cardTight, colors, radii, spacing, tabular, type } from "../constants/theme";
+import {
+  card,
+  cardTight,
+  radii,
+  spacing,
+  tabular,
+  type,
+  type ThemeColors,
+} from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import { formatDateLabel } from "../lib/dateKey";
 import { Authenticated } from "convex/react";
 
 function MealDetailScreenContent() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   // A deep link or a restored navigation state can land here without a usable
@@ -118,7 +129,8 @@ function MealDetailScreenContent() {
 
         <Text style={styles.title}>{log.name}</Text>
         <Text style={styles.subtitle}>
-          {Math.round(log.calories)} kcal{itemLine}, logged {formatDateLabel(log.date)}
+          {Math.round(log.calories)} kcal{itemLine}, logged{" "}
+          {formatDateLabel(log.date)}
         </Text>
 
         <View style={styles.macroRow}>
@@ -151,7 +163,8 @@ function MealDetailScreenContent() {
                   key={index}
                   style={[
                     styles.ingredientRow,
-                    index === ingredients.length - 1 && styles.ingredientRowLast,
+                    index === ingredients.length - 1 &&
+                      styles.ingredientRowLast,
                   ]}
                 >
                   <View style={styles.ingredientMain}>
@@ -186,6 +199,7 @@ function Macro({
   goal?: number;
   color: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.macroCard}>
       <Text style={styles.macroLabel}>{label}</Text>
@@ -199,86 +213,87 @@ function Macro({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  centered: { alignItems: "center", justifyContent: "center" },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    padding: spacing.xs,
-  },
-  backLabel: { ...type.label, color: colors.text },
-  deleteButton: {
-    padding: spacing.xs,
-    minWidth: 40,
-    minHeight: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
-  photo: { width: "100%", height: 260, borderRadius: radii.lg },
-  title: {
-    ...type.title,
-    color: colors.text,
-  },
-  subtitle: {
-    ...type.label,
-    color: colors.textMuted,
-    marginTop: -spacing.sm,
-    ...tabular,
-  },
-  macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
-  macroCard: { ...cardTight, flex: 1, padding: spacing.sm + 6 },
-  macroLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  macroValue: {
-    fontSize: 21,
-    fontWeight: "600",
-    color: colors.text,
-    marginTop: spacing.sm + 2,
-    ...tabular,
-  },
-  macroTrack: { marginTop: spacing.sm + 4 },
-  sectionTitle: {
-    ...type.bodyStrong,
-    fontSize: 17,
-    color: colors.text,
-    marginTop: spacing.xs,
-  },
-  ingredientCard: { ...card, overflow: "hidden" },
-  ingredientRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm + 4,
-    padding: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  ingredientRowLast: { borderBottomWidth: 0 },
-  ingredientMain: { flex: 1, gap: 4 },
-  ingredientName: { ...type.body, color: colors.text },
-  ingredientMeta: { ...type.label, color: colors.textMuted, ...tabular },
-  ingredientCalories: {
-    ...type.bodyStrong,
-    color: colors.text,
-    ...tabular,
-  },
-  emptyText: { color: colors.textMuted },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    centered: { alignItems: "center", justifyContent: "center" },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.sm,
+    },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      padding: spacing.xs,
+    },
+    backLabel: { ...type.label, color: c.text },
+    deleteButton: {
+      padding: spacing.xs,
+      minWidth: 40,
+      minHeight: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
+    photo: { width: "100%", height: 260, borderRadius: radii.lg },
+    title: {
+      ...type.title,
+      color: c.text,
+    },
+    subtitle: {
+      ...type.label,
+      color: c.textMuted,
+      marginTop: -spacing.sm,
+      ...tabular,
+    },
+    macroRow: { flexDirection: "row", gap: spacing.sm + 2 },
+    macroCard: { ...cardTight(c), flex: 1, padding: spacing.sm + 6 },
+    macroLabel: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: c.textMuted,
+    },
+    macroValue: {
+      fontSize: 21,
+      fontWeight: "600",
+      color: c.text,
+      marginTop: spacing.sm + 2,
+      ...tabular,
+    },
+    macroTrack: { marginTop: spacing.sm + 4 },
+    sectionTitle: {
+      ...type.bodyStrong,
+      fontSize: 17,
+      color: c.text,
+      marginTop: spacing.xs,
+    },
+    ingredientCard: { ...card(c), overflow: "hidden" },
+    ingredientRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: spacing.sm + 4,
+      padding: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    ingredientRowLast: { borderBottomWidth: 0 },
+    ingredientMain: { flex: 1, gap: 4 },
+    ingredientName: { ...type.body, color: c.text },
+    ingredientMeta: { ...type.label, color: c.textMuted, ...tabular },
+    ingredientCalories: {
+      ...type.bodyStrong,
+      color: c.text,
+      ...tabular,
+    },
+    emptyText: { color: c.textMuted },
+  });
 
 // Mounted only with a session: every query on this screen is account-scoped.
 export default function MealDetailScreen() {

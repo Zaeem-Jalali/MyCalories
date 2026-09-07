@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import { BrandLoading } from "../components/ui/BrandLoading";
+import { ThemeProvider, useTheme } from "../components/ThemeProvider";
 import { convex } from "../lib/convexClient";
 import { secureStorage } from "../lib/secureStorage";
 
@@ -24,6 +25,7 @@ const PUBLIC_ROUTES = ["welcome", "signIn"];
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
+  const { mode, colors } = useTheme();
   // Deliberately convex/react's hook, not the one from @convex-dev/auth:
   // this one only flips once the websocket has confirmed the identity, which
   // is when account-scoped queries start answering as that account. The auth
@@ -71,29 +73,38 @@ function AuthGate() {
     router,
   ]);
 
-  // The navigator stays mounted while auth settles and the spinner sits over
-  // it. Swapping it out for the spinner would unmount the whole stack and
-  // throw away navigation state every time the auth state changes.
+  // The navigator stays mounted while auth settles and the launch layer sits
+  // over it. Swapping it out would unmount the whole stack and throw away
+  // navigation state every time the auth state changes.
   return (
-    <View style={styles.flex}>
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
           animation: "fade",
           animationDuration: 200,
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="welcome" />
         <Stack.Screen name="signIn" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="log" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-        <Stack.Screen name="exercise" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+        <Stack.Screen
+          name="log"
+          options={{ presentation: "modal", animation: "slide_from_bottom" }}
+        />
+        <Stack.Screen
+          name="exercise"
+          options={{ presentation: "modal", animation: "slide_from_bottom" }}
+        />
         <Stack.Screen name="mealDetail" />
         <Stack.Screen name="monthlyReport" />
       </Stack>
       {!launchDone ? (
         <BrandLoading
+          mode={mode}
           done={!settling}
           onHidden={() => setLaunchDone(true)}
         />
@@ -106,8 +117,9 @@ export default function RootLayout() {
   return (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <AuthGate />
+        <ThemeProvider>
+          <AuthGate />
+        </ThemeProvider>
       </SafeAreaProvider>
     </ConvexAuthProvider>
   );

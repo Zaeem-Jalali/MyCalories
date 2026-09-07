@@ -15,7 +15,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, tabular, type } from "../constants/theme";
+import {
+  radii,
+  spacing,
+  tabular,
+  type,
+  type ThemeColors,
+} from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import { dateFromKey, formatDateLabel, todayKey } from "../lib/dateKey";
 import { downscaleForVision, VISION_TEXT_WIDTH } from "../lib/prepImage";
 import { Button } from "../components/ui/Button";
@@ -48,6 +55,7 @@ function dayOfWeekFor(dateKey: string): number {
 }
 
 function ExerciseScreenContent() {
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const date = dateParam ?? todayKey();
@@ -264,9 +272,8 @@ function ExerciseScreenContent() {
               <View key={plan._id} style={styles.plannedRow}>
                 <View style={styles.plannedMain}>
                   <Text style={styles.plannedText}>
-                    {ACTIVITY_LABELS[plan.activity]} ·{" "}
-                    {plan.durationMinutes} min ·{" "}
-                    {intensityLabel(plan.activity, plan.intensity)}
+                    {ACTIVITY_LABELS[plan.activity]} · {plan.durationMinutes}{" "}
+                    min · {intensityLabel(plan.activity, plan.intensity)}
                   </Text>
                   {plan.notes ? (
                     <Text style={styles.plannedNotes}>{plan.notes}</Text>
@@ -404,107 +411,112 @@ function ExerciseScreenContent() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-  },
-  headerText: { gap: 2 },
-  title: { ...type.title, fontSize: 20, color: colors.text },
-  subtitle: { ...type.label, color: colors.textMuted },
-  closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
-  closeText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
-  scrollContent: { paddingBottom: spacing.xl },
-  plannedCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    backgroundColor: colors.accentTint,
-    gap: spacing.sm,
-  },
-  plannedTitle: { ...type.bodyStrong, color: colors.text },
-  plannedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  plannedMain: { flex: 1, gap: 2 },
-  plannedText: { ...type.body, color: colors.text },
-  plannedNotes: { ...type.label, color: colors.textMuted },
-  plannedButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  plannedButtonBusy: { opacity: 0.6 },
-  plannedButtonText: { ...type.label, color: colors.onAccent },
-  form: { padding: spacing.lg, gap: spacing.sm },
-  fieldLabel: { ...type.label, color: colors.textMuted, marginTop: spacing.sm },
-  chipWrapRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-    color: colors.text,
-  },
-  previewBlock: { gap: 2, marginTop: spacing.xs },
-  previewValue: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700",
-    color: colors.text,
-    ...tabular,
-  },
-  previewLabel: { ...type.label, color: colors.textMuted },
-  previewUnit: { fontSize: 17, fontWeight: "400", color: colors.textMuted },
-  scheduleCard: {
-    marginHorizontal: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    gap: spacing.sm,
-  },
-  scheduleButtonRow: { flexDirection: "row", gap: spacing.sm },
-  scheduleButton: { flex: 1 },
-  emptyWrap: { paddingHorizontal: spacing.lg, marginTop: spacing.sm },
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  emptyInlineText: { color: colors.textMuted },
-  sectionTitle: {
-    ...type.title,
-    fontSize: 16,
-    color: colors.text,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-  },
-  logList: { paddingHorizontal: spacing.lg },
-  logRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.sm + 2,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  logText: { color: colors.text, flex: 1 },
-  logRowRight: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  logCalories: { color: colors.textMuted },
-  deleteText: { color: colors.danger, fontWeight: "600", fontSize: 13 },
-  emptyText: {
-    color: colors.textMuted,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    headerText: { gap: 2 },
+    title: { ...type.title, fontSize: 20, color: c.text },
+    subtitle: { ...type.label, color: c.textMuted },
+    closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
+    closeText: { ...type.label, color: c.textMuted, fontWeight: "600" },
+    scrollContent: { paddingBottom: spacing.xl },
+    plannedCard: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      padding: spacing.md,
+      borderRadius: radii.md,
+      backgroundColor: c.accentTint,
+      gap: spacing.sm,
+    },
+    plannedTitle: { ...type.bodyStrong, color: c.text },
+    plannedRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    plannedMain: { flex: 1, gap: 2 },
+    plannedText: { ...type.body, color: c.text },
+    plannedNotes: { ...type.label, color: c.textMuted },
+    plannedButton: {
+      backgroundColor: c.accent,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    plannedButtonBusy: { opacity: 0.6 },
+    plannedButtonText: { ...type.label, color: c.onAccent },
+    form: { padding: spacing.lg, gap: spacing.sm },
+    fieldLabel: { ...type.label, color: c.textMuted, marginTop: spacing.sm },
+    chipWrapRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      fontSize: 16,
+      color: c.text,
+    },
+    previewBlock: { gap: 2, marginTop: spacing.xs },
+    previewValue: {
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: "700",
+      color: c.text,
+      ...tabular,
+    },
+    previewLabel: { ...type.label, color: c.textMuted },
+    previewUnit: { fontSize: 17, fontWeight: "400", color: c.textMuted },
+    scheduleCard: {
+      marginHorizontal: spacing.lg,
+      padding: spacing.md,
+      borderRadius: radii.md,
+      backgroundColor: c.surface,
+      gap: spacing.sm,
+    },
+    scheduleButtonRow: { flexDirection: "row", gap: spacing.sm },
+    scheduleButton: { flex: 1 },
+    emptyWrap: { paddingHorizontal: spacing.lg, marginTop: spacing.sm },
+    loadingRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    emptyInlineText: { color: c.textMuted },
+    sectionTitle: {
+      ...type.title,
+      fontSize: 16,
+      color: c.text,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.md,
+    },
+    logList: { paddingHorizontal: spacing.lg },
+    logRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: spacing.sm + 2,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    logText: { color: c.text, flex: 1 },
+    logRowRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    logCalories: { color: c.textMuted },
+    deleteText: { color: c.danger, fontWeight: "600", fontSize: 13 },
+    emptyText: {
+      color: c.textMuted,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.sm,
+    },
+  });
 
 // Mounted only with a session: every query on this screen is account-scoped.
 export default function ExerciseScreen() {

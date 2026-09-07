@@ -18,7 +18,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { radii, spacing, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import { FoodSearchResult, searchFoods } from "../lib/openFoodFacts";
 import { PhotoTab } from "../components/PhotoTab";
 import { BarcodeTab } from "../components/BarcodeTab";
@@ -38,6 +39,7 @@ const MODES: { value: Mode; label: string }[] = [
 ];
 
 function LogFoodScreenContent() {
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const date = dateParam ?? todayKey();
@@ -95,13 +97,8 @@ function LogFoodScreenContent() {
   );
 }
 
-function SearchTab({
-  date,
-  onLogged,
-}: {
-  date: string;
-  onLogged: () => void;
-}) {
+function SearchTab({ date, onLogged }: { date: string; onLogged: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -152,7 +149,8 @@ function SearchTab({
       <View style={styles.form}>
         <Text style={styles.selectedName}>{selected.name}</Text>
         <Text style={styles.fieldLabel}>
-          Amount ({selected.unit}){selected.packageAmount ? " (from the package size)" : ""}
+          Amount ({selected.unit})
+          {selected.packageAmount ? " (from the package size)" : ""}
         </Text>
         <TextInput
           style={styles.input}
@@ -228,13 +226,8 @@ function SearchTab({
   );
 }
 
-function SavedTab({
-  date,
-  onLogged,
-}: {
-  date: string;
-  onLogged: () => void;
-}) {
+function SavedTab({ date, onLogged }: { date: string; onLogged: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   const savedMeals = useQuery(api.savedMeals.list, {});
   const createLog = useMutation(api.foodLogs.create);
   const removeSaved = useMutation(api.savedMeals.remove);
@@ -311,13 +304,9 @@ function SavedTab({
   );
 }
 
-function ManualTab({
-  date,
-  onLogged,
-}: {
-  date: string;
-  onLogged: () => void;
-}) {
+function ManualTab({ date, onLogged }: { date: string; onLogged: () => void }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const createLog = useMutation(api.foodLogs.create);
   const createSavedMeal = useMutation(api.savedMeals.create);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
@@ -359,7 +348,10 @@ function ManualTab({
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", `Allow ${source} access to add a photo.`);
+      Alert.alert(
+        "Permission needed",
+        `Allow ${source} access to add a photo.`,
+      );
       return;
     }
     const result =
@@ -579,95 +571,100 @@ function ManualTab({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm + 4,
-  },
-  headerText: { gap: 2 },
-  title: { ...type.title, fontSize: 20, color: colors.text },
-  subtitle: { ...type.label, color: colors.textMuted },
-  closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
-  closeText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
-  // A horizontal ScrollView stretches to fill its column parent unless it is
-  // told not to, which pushed the tab content to the bottom of the screen.
-  modeScroll: { flexGrow: 0, flexShrink: 0 },
-  modeRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 4,
-  },
-  form: { flex: 1, padding: 20, gap: 12 },
-  formScroll: { flex: 1 },
-  formContent: { padding: 20, gap: 12, paddingBottom: 40 },
-  row: { flexDirection: "row", gap: 12 },
-  photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  photoThumb: { width: 64, height: 64, borderRadius: radii.md },
-  fieldLabel: { color: colors.textMuted, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: colors.text,
-  },
-  searchRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  searchButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  deleteText: { color: colors.danger, fontWeight: "600", fontSize: 13 },
-  checkboxRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
-  checkboxLabel: { color: colors.text },
-  resultName: { color: colors.text, fontWeight: "600" },
-  resultMeta: { color: colors.textMuted, marginTop: 2, fontSize: 13 },
-  emptyText: { color: colors.textMuted, marginTop: 20, textAlign: "center" },
-  selectedName: { fontSize: 18, fontWeight: "700", color: colors.text },
-  previewText: { color: colors.textMuted },
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 8 },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: { color: colors.text, fontWeight: "600" },
-  saveButton: {
-    flex: 1,
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  saveButtonText: { color: colors.onAccent, fontWeight: "700" },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm + 4,
+    },
+    headerText: { gap: 2 },
+    title: { ...type.title, fontSize: 20, color: c.text },
+    subtitle: { ...type.label, color: c.textMuted },
+    closeButton: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
+    closeText: { ...type.label, color: c.textMuted, fontWeight: "600" },
+    // A horizontal ScrollView stretches to fill its column parent unless it is
+    // told not to, which pushed the tab content to the bottom of the screen.
+    modeScroll: { flexGrow: 0, flexShrink: 0 },
+    modeRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm + 4,
+    },
+    form: { flex: 1, padding: 20, gap: 12 },
+    formScroll: { flex: 1 },
+    formContent: { padding: 20, gap: 12, paddingBottom: 40 },
+    row: { flexDirection: "row", gap: 12 },
+    photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+    photoThumb: { width: 64, height: 64, borderRadius: radii.md },
+    fieldLabel: { color: c.textMuted, marginBottom: 6 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: c.text,
+    },
+    searchRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+    searchButton: {
+      backgroundColor: c.accent,
+      borderRadius: 12,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+    },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    deleteText: { color: c.danger, fontWeight: "600", fontSize: 13 },
+    checkboxRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: c.border,
+    },
+    checkboxChecked: { backgroundColor: c.accent, borderColor: c.accent },
+    checkboxLabel: { color: c.text },
+    resultName: { color: c.text, fontWeight: "600" },
+    resultMeta: { color: c.textMuted, marginTop: 2, fontSize: 13 },
+    emptyText: { color: c.textMuted, marginTop: 20, textAlign: "center" },
+    selectedName: { fontSize: 18, fontWeight: "700", color: c.text },
+    previewText: { color: c.textMuted },
+    buttonRow: { flexDirection: "row", gap: 12, marginTop: 8 },
+    secondaryButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    secondaryButtonText: { color: c.text, fontWeight: "600" },
+    saveButton: {
+      flex: 1,
+      backgroundColor: c.accent,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    saveButtonText: { color: c.onAccent, fontWeight: "700" },
+  });
 
 // Mounted only with a session: every query on this screen is account-scoped.
 export default function LogFoodScreen() {

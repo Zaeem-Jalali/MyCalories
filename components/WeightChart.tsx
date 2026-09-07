@@ -2,7 +2,8 @@ import { useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 
-import { colors, spacing, tabular, type } from "../constants/theme";
+import { spacing, tabular, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
 import { dateFromKey } from "../lib/dateKey";
 
 const CHART_HEIGHT = 160;
@@ -13,6 +14,8 @@ export function WeightChart({
 }: {
   entries: { date: string; weightLbs: number }[];
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [width, setWidth] = useState(0);
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -115,20 +118,21 @@ function axisLabel(key: string): string {
   }).format(dateFromKey(key));
 }
 
-const styles = StyleSheet.create({
-  container: { paddingVertical: spacing.sm },
-  empty: {
-    padding: spacing.md,
-    minHeight: CHART_HEIGHT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: { ...type.body, color: colors.textMuted, textAlign: "center" },
-  axisRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: PADDING - spacing.sm,
-    marginTop: -spacing.sm,
-  },
-  axisLabel: { ...type.label, ...tabular, color: colors.textMuted },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { paddingVertical: spacing.sm },
+    empty: {
+      padding: spacing.md,
+      minHeight: CHART_HEIGHT,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyText: { ...type.body, color: c.textMuted, textAlign: "center" },
+    axisRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: PADDING - spacing.sm,
+      marginTop: -spacing.sm,
+    },
+    axisLabel: { ...type.label, ...tabular, color: c.textMuted },
+  });

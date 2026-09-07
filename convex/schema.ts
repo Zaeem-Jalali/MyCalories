@@ -71,6 +71,10 @@ export default defineSchema({
       ),
     ),
     onboardingCompleted: v.optional(v.boolean()),
+
+    // Light or dark. Absent means the user has never chosen, which the app
+    // reads as light.
+    theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
   }).index("by_user", ["userId"]),
 
   foodLogs: defineTable({

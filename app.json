@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -36,7 +36,11 @@
         {
           "backgroundColor": "#FBEEDC",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 150
+          "imageWidth": 150,
+          "dark": {
+            "backgroundColor": "#1B150C",
+            "image": "./assets/splash-icon-dark.png"
+          }
         }
       ],
       [

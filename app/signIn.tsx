@@ -16,7 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../components/ui/Button";
 import { PressableScale } from "../components/ui/PressableScale";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { radii, spacing, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import {
   PASSWORD_RULES,
   emailProblem,
@@ -47,7 +48,11 @@ function readableError(error: unknown, mode: "signIn" | "signUp"): string {
   if (/already exists/i.test(message)) {
     return "An account with that email already exists. Sign in instead.";
   }
-  if (/InvalidAccountId|InvalidSecret|no account|invalid credentials/i.test(message)) {
+  if (
+    /InvalidAccountId|InvalidSecret|no account|invalid credentials/i.test(
+      message,
+    )
+  ) {
     return "That email and password don't match an account.";
   }
   if (/Invalid password|at least 8/i.test(message)) {
@@ -62,6 +67,7 @@ function readableError(error: unknown, mode: "signIn" | "signUp"): string {
 }
 
 export default function SignInScreen() {
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
   const { signIn } = useAuthActions();
@@ -150,7 +156,9 @@ export default function SignInScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
-              autoComplete={mode === "signUp" ? "new-password" : "current-password"}
+              autoComplete={
+                mode === "signUp" ? "new-password" : "current-password"
+              }
               textContentType={mode === "signUp" ? "newPassword" : "password"}
             />
           </View>
@@ -161,14 +169,10 @@ export default function SignInScreen() {
                 const met = rule.test(password);
                 return (
                   <View key={rule.label} style={styles.ruleRow}>
-                    <Text
-                      style={[styles.ruleMark, met && styles.ruleMarkMet]}
-                    >
+                    <Text style={[styles.ruleMark, met && styles.ruleMarkMet]}>
                       {met ? "✓" : "•"}
                     </Text>
-                    <Text
-                      style={[styles.ruleText, met && styles.ruleTextMet]}
-                    >
+                    <Text style={[styles.ruleText, met && styles.ruleTextMet]}>
                       {rule.label}
                     </Text>
                   </View>
@@ -206,41 +210,42 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.md },
-  backButton: { alignSelf: "flex-start", paddingVertical: spacing.xs },
-  backText: { ...type.label, color: colors.textMuted, fontWeight: "600" },
-  switchButton: { paddingVertical: spacing.sm, alignItems: "center" },
-  title: { ...type.title, color: colors.text, marginTop: spacing.sm },
-  field: { gap: spacing.xs },
-  label: { ...type.label, color: colors.textMuted },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-    color: colors.text,
-  },
-  error: { ...type.label, color: colors.danger },
-  rules: { gap: spacing.xs, marginTop: -spacing.xs },
-  ruleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  ruleMark: {
-    ...type.label,
-    color: colors.textMuted,
-    width: 12,
-    textAlign: "center",
-  },
-  ruleMarkMet: { color: colors.accent },
-  ruleText: { ...type.label, color: colors.textMuted },
-  ruleTextMet: { color: colors.text },
-  switchText: {
-    ...type.label,
-    color: colors.accent,
-    textAlign: "center",
-    marginTop: spacing.sm,
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    flex: { flex: 1 },
+    content: { padding: spacing.lg, gap: spacing.md },
+    backButton: { alignSelf: "flex-start", paddingVertical: spacing.xs },
+    backText: { ...type.label, color: c.textMuted, fontWeight: "600" },
+    switchButton: { paddingVertical: spacing.sm, alignItems: "center" },
+    title: { ...type.title, color: c.text, marginTop: spacing.sm },
+    field: { gap: spacing.xs },
+    label: { ...type.label, color: c.textMuted },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      fontSize: 16,
+      color: c.text,
+    },
+    error: { ...type.label, color: c.danger },
+    rules: { gap: spacing.xs, marginTop: -spacing.xs },
+    ruleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    ruleMark: {
+      ...type.label,
+      color: c.textMuted,
+      width: 12,
+      textAlign: "center",
+    },
+    ruleMarkMet: { color: c.accent },
+    ruleText: { ...type.label, color: c.textMuted },
+    ruleTextMet: { color: c.text },
+    switchText: {
+      ...type.label,
+      color: c.accent,
+      textAlign: "center",
+      marginTop: spacing.sm,
+    },
+  });

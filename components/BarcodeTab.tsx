@@ -13,7 +13,8 @@ import {
 } from "react-native";
 
 import { api } from "../convex/_generated/api";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { radii, spacing, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
 import { FoodSearchResult, getProductByBarcode } from "../lib/openFoodFacts";
 import { downscaleForVision, VISION_TEXT_WIDTH } from "../lib/prepImage";
 
@@ -24,6 +25,8 @@ export function BarcodeTab({
   date: string;
   onLogged: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(true);
   const [looking, setLooking] = useState(false);
@@ -42,9 +45,13 @@ export function BarcodeTab({
   const scanLabelInstead = async () => {
     setScanningLabel(true);
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      const permissionResult =
+        await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert("Permission needed", "Allow camera access to scan the label.");
+        Alert.alert(
+          "Permission needed",
+          "Allow camera access to scan the label.",
+        );
         return;
       }
       const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
@@ -98,7 +105,11 @@ export function BarcodeTab({
           "That barcode isn't in the Open Food Facts database. You can scan the nutrition label instead, or use Search/Manual.",
           [
             { text: "Scan label", onPress: scanLabelInstead },
-            { text: "Cancel", onPress: () => setScanning(true), style: "cancel" },
+            {
+              text: "Cancel",
+              onPress: () => setScanning(true),
+              style: "cancel",
+            },
           ],
         );
         return;
@@ -147,7 +158,10 @@ export function BarcodeTab({
         <Text style={styles.hint}>
           Camera access is needed to scan barcodes.
         </Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={requestPermission}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={requestPermission}
+        >
           <Text style={styles.primaryButtonText}>Allow camera</Text>
         </TouchableOpacity>
       </View>
@@ -167,9 +181,12 @@ export function BarcodeTab({
     return (
       <View style={styles.form}>
         <Text style={styles.productName}>{product.name}</Text>
-        {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
+        {product.brand ? (
+          <Text style={styles.brand}>{product.brand}</Text>
+        ) : null}
         <Text style={styles.fieldLabel}>
-          Amount ({product.unit}){product.packageAmount ? " (from the package size)" : ""}
+          Amount ({product.unit})
+          {product.packageAmount ? " (from the package size)" : ""}
         </Text>
         <TextInput
           style={styles.input}
@@ -192,7 +209,10 @@ export function BarcodeTab({
           >
             <Text style={styles.secondaryButtonText}>Scan again</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={logProduct}>
+          <TouchableOpacity
+            style={[styles.primaryButton, { flex: 1 }]}
+            onPress={logProduct}
+          >
             <Text style={styles.primaryButtonText}>Add</Text>
           </TouchableOpacity>
         </View>
@@ -222,67 +242,68 @@ export function BarcodeTab({
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  hint: { ...type.body, color: colors.textMuted, textAlign: "center" },
-  cameraContainer: { flex: 1, backgroundColor: colors.text },
-  scanFrame: {
-    position: "absolute",
-    top: "35%",
-    left: "15%",
-    right: "15%",
-    height: "20%",
-    borderWidth: 2,
-    borderColor: colors.accent,
-    borderRadius: radii.md,
-  },
-  scanHint: {
-    position: "absolute",
-    bottom: spacing.xl,
-    alignSelf: "center",
-    color: colors.background,
-    ...type.body,
-  },
-  lookingOverlay: {
-    position: "absolute",
-    bottom: spacing.xl,
-    alignSelf: "center",
-  },
-  form: { flex: 1, padding: spacing.lg, gap: spacing.md },
-  productName: { ...type.title, color: colors.text },
-  brand: { ...type.label, color: colors.textMuted, marginTop: -spacing.sm },
-  fieldLabel: { ...type.label, color: colors.textMuted, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-    color: colors.text,
-  },
-  previewText: { ...type.body, color: colors.textMuted },
-  buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  secondaryButtonText: { ...type.bodyStrong, color: colors.text },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  primaryButtonText: { ...type.bodyStrong, color: colors.onAccent },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    hint: { ...type.body, color: c.textMuted, textAlign: "center" },
+    cameraContainer: { flex: 1, backgroundColor: c.text },
+    scanFrame: {
+      position: "absolute",
+      top: "35%",
+      left: "15%",
+      right: "15%",
+      height: "20%",
+      borderWidth: 2,
+      borderColor: c.accent,
+      borderRadius: radii.md,
+    },
+    scanHint: {
+      position: "absolute",
+      bottom: spacing.xl,
+      alignSelf: "center",
+      color: c.background,
+      ...type.body,
+    },
+    lookingOverlay: {
+      position: "absolute",
+      bottom: spacing.xl,
+      alignSelf: "center",
+    },
+    form: { flex: 1, padding: spacing.lg, gap: spacing.md },
+    productName: { ...type.title, color: c.text },
+    brand: { ...type.label, color: c.textMuted, marginTop: -spacing.sm },
+    fieldLabel: { ...type.label, color: c.textMuted, marginTop: spacing.sm },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      fontSize: 16,
+      color: c.text,
+    },
+    previewText: { ...type.body, color: c.textMuted },
+    buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+    secondaryButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.md,
+      paddingVertical: spacing.md,
+      alignItems: "center",
+    },
+    secondaryButtonText: { ...type.bodyStrong, color: c.text },
+    primaryButton: {
+      backgroundColor: c.accent,
+      borderRadius: radii.md,
+      paddingVertical: spacing.md,
+      alignItems: "center",
+    },
+    primaryButtonText: { ...type.bodyStrong, color: c.onAccent },
+  });

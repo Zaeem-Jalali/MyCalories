@@ -14,10 +14,13 @@ import {
 
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { colors, radii, spacing, type } from "../constants/theme";
+import { radii, spacing, type, type ThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
 import { todayKey } from "../lib/dateKey";
 
 export function ProgressPhotos() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const photos = useQuery(api.progressPhotos.list, {});
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const createPhoto = useMutation(api.progressPhotos.create);
@@ -41,7 +44,10 @@ export function ProgressPhotos() {
   const addPhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow camera access to add a progress photo.");
+      Alert.alert(
+        "Permission needed",
+        "Allow camera access to add a progress photo.",
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
@@ -120,10 +126,13 @@ export function ProgressPhotos() {
                   onPress={() => toggleSelect(photo._id)}
                   style={[
                     styles.thumbWrapper,
-                    selectedIds.includes(photo._id) && styles.thumbWrapperSelected,
+                    selectedIds.includes(photo._id) &&
+                      styles.thumbWrapperSelected,
                   ]}
                   accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selectedIds.includes(photo._id) }}
+                  accessibilityState={{
+                    checked: selectedIds.includes(photo._id),
+                  }}
                   accessibilityLabel={`Progress photo from ${photo.date}`}
                 >
                   {photo.url ? (
@@ -137,7 +146,11 @@ export function ProgressPhotos() {
                   accessibilityRole="button"
                   accessibilityLabel={`Delete progress photo from ${photo.date}`}
                 >
-                  <Ionicons name="close-circle" size={20} color={colors.background} />
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={colors.background}
+                  />
                 </TouchableOpacity>
               </View>
             ))}
@@ -148,42 +161,43 @@ export function ProgressPhotos() {
   );
 }
 
-const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: { ...type.title, color: colors.text },
-  addText: { ...type.bodyStrong, color: colors.accent },
-  emptyText: { ...type.body, color: colors.textMuted },
-  thumbRow: { flexDirection: "row", gap: spacing.sm },
-  thumbSlot: { width: 84, height: 84 },
-  thumbWrapper: {
-    width: 84,
-    height: 84,
-    borderRadius: radii.md,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  thumbWrapperSelected: { borderColor: colors.accent },
-  thumb: { width: "100%", height: "100%" },
-  deleteButton: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    backgroundColor: colors.danger,
-    borderRadius: radii.pill,
-  },
-  compareCard: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.sm,
-  },
-  compareColumn: { flex: 1, alignItems: "center", gap: spacing.xs },
-  compareImage: { width: "100%", height: 200, borderRadius: radii.md },
-  compareDate: { ...type.label, color: colors.textMuted },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    sectionTitle: { ...type.title, color: c.text },
+    addText: { ...type.bodyStrong, color: c.accent },
+    emptyText: { ...type.body, color: c.textMuted },
+    thumbRow: { flexDirection: "row", gap: spacing.sm },
+    thumbSlot: { width: 84, height: 84 },
+    thumbWrapper: {
+      width: 84,
+      height: 84,
+      borderRadius: radii.md,
+      overflow: "hidden",
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    thumbWrapperSelected: { borderColor: c.accent },
+    thumb: { width: "100%", height: "100%" },
+    deleteButton: {
+      position: "absolute",
+      top: -6,
+      right: -6,
+      backgroundColor: c.danger,
+      borderRadius: radii.pill,
+    },
+    compareCard: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      backgroundColor: c.surface,
+      borderRadius: radii.lg,
+      padding: spacing.sm,
+    },
+    compareColumn: { flex: 1, alignItems: "center", gap: spacing.xs },
+    compareImage: { width: "100%", height: 200, borderRadius: radii.md },
+    compareDate: { ...type.label, color: c.textMuted },
+  });

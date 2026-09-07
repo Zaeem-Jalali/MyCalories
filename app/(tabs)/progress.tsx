@@ -17,12 +17,13 @@ import { api } from "../../convex/_generated/api";
 import {
   card,
   cardTight,
-  colors,
   radii,
   spacing,
   tabular,
   type,
+  type ThemeColors,
 } from "../../constants/theme";
+import { useTheme, useThemedStyles } from "../../components/ThemeProvider";
 import { Button } from "../../components/ui/Button";
 import { PressableScale } from "../../components/ui/PressableScale";
 import { ProgressPhotos } from "../../components/ProgressPhotos";
@@ -37,6 +38,8 @@ function round1(value: number): number {
 }
 
 export default function ProgressScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const weightLogs = useQuery(api.weightLogs.list, {});
   const profile = useQuery(api.profile.get, {});
@@ -58,7 +61,10 @@ export default function ProgressScreen() {
       return;
     }
     const weightLbs = unit === "lbs" ? value : value * LBS_PER_KG;
-    await logWeight({ date: todayKey(), weightLbs: Math.round(weightLbs * 10) / 10 });
+    await logWeight({
+      date: todayKey(),
+      weightLbs: Math.round(weightLbs * 10) / 10,
+    });
     setInput("");
   };
 
@@ -146,53 +152,54 @@ export default function ProgressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, gap: spacing.md },
-  title: { ...type.display, fontSize: 24, color: colors.text },
-  row: { flexDirection: "row", gap: spacing.sm },
-  card: { ...cardTight, flex: 1, padding: spacing.md },
-  cardValue: {
-    fontSize: 26,
-    fontWeight: "600",
-    letterSpacing: -0.6,
-    color: colors.text,
-    ...tabular,
-  },
-  cardLabel: { ...type.label, color: colors.textMuted, marginTop: 6, ...tabular },
-  logCard: { ...card, padding: spacing.md, gap: spacing.sm + 2 },
-  logHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  historyCard: { ...card, padding: spacing.md, gap: spacing.sm },
-  logRow: { flexDirection: "row", gap: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.background,
-    minHeight: 48,
-    ...tabular,
-  },
-  sectionTitle: { ...type.bodyStrong, fontSize: 15, color: colors.text },
-  reportRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm + 4,
-    paddingHorizontal: spacing.md,
-    minHeight: 56,
-  },
-  reportMain: { gap: 5 },
-  reportText: { ...type.body, color: colors.text },
-  reportMeta: { fontSize: 12.5, color: colors.textMuted },
-  emptyText: { color: colors.textMuted },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: spacing.lg, gap: spacing.md },
+    title: { ...type.display, fontSize: 24, color: c.text },
+    row: { flexDirection: "row", gap: spacing.sm },
+    card: { ...cardTight(c), flex: 1, padding: spacing.md },
+    cardValue: {
+      fontSize: 26,
+      fontWeight: "600",
+      letterSpacing: -0.6,
+      color: c.text,
+      ...tabular,
+    },
+    cardLabel: { ...type.label, color: c.textMuted, marginTop: 6, ...tabular },
+    logCard: { ...card(c), padding: spacing.md, gap: spacing.sm + 2 },
+    logHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    historyCard: { ...card(c), padding: spacing.md, gap: spacing.sm },
+    logRow: { flexDirection: "row", gap: spacing.sm },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      fontSize: 16,
+      color: c.text,
+      backgroundColor: c.background,
+      minHeight: 48,
+      ...tabular,
+    },
+    sectionTitle: { ...type.bodyStrong, fontSize: 15, color: c.text },
+    reportRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: c.surface,
+      borderRadius: radii.md,
+      paddingVertical: spacing.sm + 4,
+      paddingHorizontal: spacing.md,
+      minHeight: 56,
+    },
+    reportMain: { gap: 5 },
+    reportText: { ...type.body, color: c.text },
+    reportMeta: { fontSize: 12.5, color: c.textMuted },
+    emptyText: { color: c.textMuted },
+  });
