@@ -33,13 +33,17 @@ export function BarcodeTab({
   const [scanningLabel, setScanningLabel] = useState(false);
   const [product, setProduct] = useState<FoodSearchResult | null>(null);
   const [amount, setAmount] = useState("100");
+  const [saveAsMeal, setSaveAsMeal] = useState(false);
+  const [logging, setLogging] = useState(false);
   const createLog = useMutation(api.foodLogs.create);
+  const createSavedMeal = useMutation(api.savedMeals.create);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const identifyLabel = useAction(api.vision.identifyLabel);
 
   const selectProduct = (found: FoodSearchResult) => {
     setProduct(found);
     setAmount(String(found.packageAmount ?? 100));
+    setSaveAsMeal(false);
   };
 
   const scanLabelInstead = async () => {
@@ -134,17 +138,51 @@ export function BarcodeTab({
       return;
     }
     const scale = amountNum / 100;
-    await createLog({
-      date,
-      name: product.name,
-      quantity: amountNum,
-      unit: product.unit,
+    const macros = {
       calories: Math.round(product.caloriesPer100g * scale),
       proteinG: Math.round(product.proteinPer100g * scale),
       carbsG: Math.round(product.carbsPer100g * scale),
       fatG: Math.round(product.fatPer100g * scale),
-      source: "barcode",
-    });
+    };
+
+    setLogging(true);
+    try {
+      await createLog({
+        date,
+        name: product.name,
+        quantity: amountNum,
+        unit: product.unit,
+        ...macros,
+        source: "barcode",
+      });
+    } catch (error) {
+      setLogging(false);
+      Alert.alert(
+        "Couldn't add to the log",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      return;
+    }
+
+    // The log row is committed. A saved-meal failure must not read as "the
+    // scan wasn't logged" or the user re-taps and double-logs.
+    if (saveAsMeal) {
+      try {
+        await createSavedMeal({
+          name: product.name,
+          category: product.brand,
+          quantity: amountNum,
+          unit: product.unit,
+          ...macros,
+        });
+      } catch (error) {
+        Alert.alert(
+          "Logged, but couldn't save the reusable meal",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
+    }
+    setLogging(false);
     onLogged();
   };
 
@@ -199,6 +237,19 @@ export function BarcodeTab({
           cal for {amount || 0}
           {product.unit}
         </Text>
+
+        <TouchableOpacity
+          style={styles.checkboxRow}
+          onPress={() => setSaveAsMeal((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: saveAsMeal }}
+        >
+          <View
+            style={[styles.checkbox, saveAsMeal && styles.checkboxChecked]}
+          />
+          <Text style={styles.checkboxLabel}>Save as a reusable meal</Text>
+        </TouchableOpacity>
+
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.secondaryButton}
@@ -212,8 +263,13 @@ export function BarcodeTab({
           <TouchableOpacity
             style={[styles.primaryButton, { flex: 1 }]}
             onPress={logProduct}
+            disabled={logging}
           >
-            <Text style={styles.primaryButtonText}>Add</Text>
+            {logging ? (
+              <ActivityIndicator color={colors.onAccent} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Add</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -289,6 +345,21 @@ const makeStyles = (c: ThemeColors) =>
       color: c.text,
     },
     previewText: { ...type.body, color: c.textMuted },
+    checkboxRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: c.border,
+    },
+    checkboxChecked: { backgroundColor: c.accent, borderColor: c.accent },
+    checkboxLabel: { ...type.body, color: c.text },
     buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
     secondaryButton: {
       flex: 1,

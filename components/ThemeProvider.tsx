@@ -35,21 +35,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setThemeMutation = useMutation(api.profile.setTheme);
 
   const [pending, setPending] = useState<ThemeMode | null>(null);
-  const [cached, setCached] = useState<ThemeMode | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    readCachedThemeMode()
-      .then((m) => {
-        if (active && m) setCached(m);
-      })
-      .catch(() => {
-        // A missing or unreadable cache just means no pre-network hint.
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Seeded synchronously on the first render from the device cache, so the
+  // launch screen renders in the right mode immediately rather than flashing
+  // light before the async value lands.
+  const [cached] = useState<ThemeMode | null>(() => readCachedThemeMode());
 
   // Once the profile answers, its value is authoritative and any local pending
   // choice can be dropped.
