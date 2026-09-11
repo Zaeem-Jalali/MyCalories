@@ -14,11 +14,14 @@ function isMode(v: string | null): v is ThemeMode {
   return v === "light" || v === "dark";
 }
 
-export async function readCachedThemeMode(): Promise<ThemeMode | null> {
+// Synchronous read, so the provider can seed the theme on its first render and
+// the launch screen never paints a frame in the wrong mode. SecureStore.getItem
+// and localStorage.getItem are both synchronous.
+export function readCachedThemeMode(): ThemeMode | null {
   const v =
     Platform.OS === "web"
       ? localStorage.getItem(KEY)
-      : await SecureStore.getItemAsync(KEY);
+      : SecureStore.getItem(KEY);
   return isMode(v) ? v : null;
 }
 

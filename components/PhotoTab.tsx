@@ -54,6 +54,7 @@ export function PhotoTab({
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const identifyFood = useAction(api.vision.identifyFood);
   const createLog = useMutation(api.foodLogs.create);
+  const createSavedMeal = useMutation(api.savedMeals.create);
 
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [storageId, setStorageId] = useState<Id<"_storage"> | null>(null);
@@ -64,6 +65,7 @@ export function PhotoTab({
   const [saving, setSaving] = useState(false);
   const [mealName, setMealName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);
+  const [saveAsMeal, setSaveAsMeal] = useState(false);
 
   const pickAndAnalyze = async (source: "camera" | "library") => {
     const permission =
@@ -88,6 +90,7 @@ export function PhotoTab({
     setIngredients(null);
     setMealName("");
     setNameEdited(false);
+    setSaveAsMeal(false);
     setAnalyzing(true);
 
     try {
@@ -195,6 +198,13 @@ export function PhotoTab({
       { quantity: 0, calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
     );
 
+    const totals = {
+      calories: total.calories,
+      proteinG: total.proteinG,
+      carbsG: total.carbsG,
+      fatG: total.fatG,
+    };
+
     setSaving(true);
     try {
       await createLog({
@@ -202,23 +212,40 @@ export function PhotoTab({
         name,
         quantity: total.quantity,
         unit: "g",
-        calories: total.calories,
-        proteinG: total.proteinG,
-        carbsG: total.carbsG,
-        fatG: total.fatG,
+        ...totals,
         source: "photo",
         photoStorageId: storageId ?? undefined,
         ingredients: ingredientRows,
       });
-      onLogged();
     } catch (error) {
+      setSaving(false);
       Alert.alert(
         "Couldn't add the meal",
         error instanceof Error ? error.message : "Unknown error",
       );
-    } finally {
-      setSaving(false);
+      return;
     }
+
+    // The meal is logged. A saved-meal template is the totals only, no photo
+    // and no ingredient breakdown. A failure here must not read as "the meal
+    // wasn't logged" or the user re-taps and double-logs.
+    if (saveAsMeal) {
+      try {
+        await createSavedMeal({
+          name,
+          quantity: total.quantity,
+          unit: "g",
+          ...totals,
+        });
+      } catch (error) {
+        Alert.alert(
+          "Logged, but couldn't save the reusable meal",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
+    }
+    setSaving(false);
+    onLogged();
   };
 
   if (!photoUri) {
@@ -270,6 +297,7 @@ export function PhotoTab({
                 setIngredients(null);
                 setMealName("");
                 setNameEdited(false);
+                setSaveAsMeal(false);
               }}
               accessibilityRole="button"
               accessibilityLabel="Retake photo"
@@ -394,6 +422,20 @@ export function PhotoTab({
             </Text>
             <Text style={styles.footerTotal}>{round(reviewTotal)} kcal</Text>
           </View>
+          <PressableScale
+            style={styles.saveMealRow}
+            onPress={() => setSaveAsMeal((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: saveAsMeal }}
+            accessibilityLabel="Save as a reusable meal"
+          >
+            <View
+              style={[styles.saveMealBox, saveAsMeal && styles.saveMealBoxOn]}
+            >
+              {saveAsMeal ? <Text style={styles.checkMark}>✓</Text> : null}
+            </View>
+            <Text style={styles.saveMealLabel}>Save as a reusable meal</Text>
+          </PressableScale>
           <Button label="Add to log" onPress={saveAll} busy={saving} />
         </View>
       ) : null}
@@ -594,6 +636,22 @@ const makeStyles = (c: ThemeColors) =>
       alignItems: "baseline",
       justifyContent: "space-between",
     },
+    saveMealRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 2,
+    },
+    saveMealBox: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.sm,
+      borderWidth: 1.5,
+      borderColor: c.track,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    saveMealBoxOn: { backgroundColor: c.accent, borderColor: c.accent },
+    saveMealLabel: { ...type.body, color: c.text },
     footerCount: { ...type.body, color: c.textMuted },
     footerTotal: {
       fontSize: 20,
