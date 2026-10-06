@@ -1,6 +1,8 @@
 import { useAuthActions } from "@convex-dev/auth/react";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { openAuthSessionAsync } from "expo-web-browser";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -66,6 +68,8 @@ function readableError(error: unknown, mode: "signIn" | "signUp"): string {
   return message;
 }
 
+const GOOGLE_INCOMPLETE = "Google didn't finish signing you in. Try again.";
+
 export default function SignInScreen() {
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
@@ -79,6 +83,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const googleInFlight = useRef(false);
 
   const submit = async () => {
     const trimmedEmail = email.trim();
@@ -110,6 +116,39 @@ export default function SignInScreen() {
       setError(readableError(caught, mode));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const continueWithGoogle = async () => {
+    // The ref closes the gap before the re-render disables the button, so a
+    // fast double tap cannot start a second flow and overwrite the verifier.
+    if (busy || googleInFlight.current) return;
+    googleInFlight.current = true;
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      const redirectTo = Linking.createURL("/");
+      const { redirect } = await signIn("google", { redirectTo });
+      if (!redirect) throw new Error("Google sign-in didn't start.");
+      const result = await openAuthSessionAsync(redirect.toString(), redirectTo);
+      // Closing the sheet is a choice, not a failure.
+      if (result.type !== "success") return;
+      const code = Linking.parse(result.url).queryParams?.code;
+      if (typeof code !== "string") {
+        setError(GOOGLE_INCOMPLETE);
+        return;
+      }
+      // An expired or already used code does not throw, it resolves with
+      // signingIn false.
+      const { signingIn } = await signIn("google", { code });
+      if (!signingIn) setError(GOOGLE_INCOMPLETE);
+      // Otherwise the root layout's gate routes onward once the session lands.
+    } catch (caught) {
+      console.warn("Google sign-in failed", caught);
+      setError("Couldn't sign in with Google. Try again.");
+    } finally {
+      googleInFlight.current = false;
+      setGoogleBusy(false);
     }
   };
 
@@ -187,7 +226,18 @@ export default function SignInScreen() {
             label={mode === "signUp" ? "Create account" : "Sign in"}
             onPress={submit}
             busy={busy}
+            disabled={googleBusy}
           />
+
+          {Platform.OS !== "web" ? (
+            <Button
+              label="Continue with Google"
+              variant="secondary"
+              onPress={continueWithGoogle}
+              busy={googleBusy}
+              disabled={busy}
+            />
+          ) : null}
 
           <PressableScale
             scaleTo={0.98}

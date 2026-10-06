@@ -1,11 +1,11 @@
 import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
+import Google from "@auth/core/providers/google";
 
 import { emailProblem, passwordProblem } from "./validators";
 
-// Email and password only for now. Google sign-in needs its own OAuth client
-// in Google Cloud Console, so it gets added once those credentials exist.
+// Email and password, plus Google (see the providers list below).
 //
 // `profile` and `validatePasswordRequirements` run on the server for every
 // flow, so a client that skips the inline checks still cannot create a weak
@@ -26,6 +26,17 @@ const CalorieAIPassword = Password({
   },
 });
 
+// The native app returns from the browser to its own scheme. Convex Auth only
+// accepts SITE_URL or relative redirects by default, so the app scheme is
+// allowed explicitly and nothing else is.
+const APP_SCHEME = "calorieai://";
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [CalorieAIPassword],
+  providers: [CalorieAIPassword, Google],
+  callbacks: {
+    async redirect({ redirectTo }) {
+      if (redirectTo.startsWith(APP_SCHEME)) return redirectTo;
+      throw new Error("Invalid redirectTo");
+    },
+  },
 });
