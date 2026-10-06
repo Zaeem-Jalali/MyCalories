@@ -31,8 +31,8 @@ there's nothing that can silently reset or desync from your actual history.
   numbers. The model is never given a figure it could restate incorrectly,
   only the shape of the month in words.
 - **Light and dark themes.**
-- **Accounts.** Email and password auth, with every user's data isolated
-  server-side.
+- **Accounts.** Email and password or Google sign-in, with every user's data
+  isolated server-side.
 
 ## Tech stack
 
@@ -40,7 +40,7 @@ there's nothing that can silently reset or desync from your actual history.
 |---|---|
 | App | React Native (Expo SDK 54), TypeScript, Expo Router |
 | Backend | [Convex](https://convex.dev), database, typed functions, file storage |
-| Auth | `@convex-dev/auth`, email and password |
+| Auth | `@convex-dev/auth`, email and password, Google |
 | AI vision and text | Google Gemini, called only from Convex server actions |
 | Nutrition data | [Open Food Facts](https://world.openfoodfacts.org), a free and open product database |
 | Charts and the app mark | `react-native-svg` |
@@ -78,6 +78,12 @@ npx convex dev
 
 # In the Convex dashboard, or via the CLI, set your Gemini key
 npx convex env set GEMINI_API_KEY <your-key>
+
+# Google sign-in (a Web OAuth client in Google Cloud Console, redirect URI
+# https://<deployment>.convex.site/api/auth/callback/google)
+npx convex env set AUTH_GOOGLE_ID <client-id>
+npx convex env set AUTH_GOOGLE_SECRET <client-secret>
+npx convex env set SITE_URL calorieai://
 ```
 
 ### Run
